@@ -42,6 +42,9 @@ Um das Projekt lokal auszuführen, folge diesen Schritten:
     
     ADMIN_USERNAME=dein_admin_user
     ADMIN_PASSWORD=dein_admin_passwort
+
+    FINANCE_USERNAME=dein_finanz_user
+    FINANCE_PASSWORD=dein_finanz_passwort
     ```
 
 4.  **Entwicklungsserver starten:**
