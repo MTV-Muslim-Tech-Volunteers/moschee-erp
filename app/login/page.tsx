@@ -22,8 +22,8 @@ export default function LoginPage() {
     const result = await login(formData)
 
     if (result.success) {
-      // Bei Erfolg leiten wir den Nutzer in die Küche weiter
-      router.push("/kitchen")
+      // Bei Erfolg leiten wir den Nutzer zu /admin weiter
+      router.push("admin")
       router.refresh() // Wichtig: Zwingt Next.js dazu, das neue Cookie zu registrieren
     } else {
       // Fehler anzeigen und Lade-Zustand beenden
