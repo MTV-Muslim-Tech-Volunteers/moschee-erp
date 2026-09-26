@@ -12,6 +12,7 @@ export default async function AdminDashboard() {
 
   const isFinance = role === "role_finance"
   const isAdmin = role === "role_admin"
+  const canAccessKitchenAndProducts = isAdmin || isFinance
 
   return (
     <main className="min-h-screen bg-muted/40 py-12 px-4">
@@ -24,16 +25,16 @@ export default async function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Bereich 1: Küche & Produkte (role_admin) */}
           <Link
-            href={isAdmin ? "/kitchen" : "#"}
-            className={`p-6 rounded-2xl border bg-card transition-all ${isAdmin ? "hover:shadow-md hover:border-primary/50" : "opacity-40 cursor-not-allowed"}`}
+            href={canAccessKitchenAndProducts ? "/kitchen" : "#"}
+            className={`p-6 rounded-2xl border bg-card transition-all ${canAccessKitchenAndProducts ? "hover:shadow-md hover:border-primary/50" : "opacity-40 cursor-not-allowed"}`}
           >
             <h2 className="text-xl font-semibold mb-2">Küche</h2>
             <p className="text-sm text-muted-foreground">Bestellungen einsehen, abhaken und Lagerbestand prüfen.</p>
           </Link>
 
           <Link
-            href={isAdmin ? "/produkte" : "#"}
-            className={`p-6 rounded-2xl border bg-card transition-all ${isAdmin ? "hover:shadow-md hover:border-primary/50" : "opacity-40 cursor-not-allowed"}`}
+            href={canAccessKitchenAndProducts ? "/produkte" : "#"}
+            className={`p-6 rounded-2xl border bg-card transition-all ${canAccessKitchenAndProducts ? "hover:shadow-md hover:border-primary/50" : "opacity-40 cursor-not-allowed"}`}
           >
             <h2 className="text-xl font-semibold mb-2">Produkte verwalten</h2>
             <p className="text-sm text-muted-foreground">Neue Artikel anlegen und Speisekarte bearbeiten.</p>
