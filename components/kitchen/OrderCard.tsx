@@ -108,7 +108,7 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
     clearCancelHold(true)
     setIsCancelling(true)
 
-    void onDeleteOrder(order.id).finally(() => {
+    void Promise.resolve(onDeleteOrder(order.id)).finally(() => {
       setIsCancelling(false)
       cancelTriggeredRef.current = false
     })
