@@ -42,8 +42,8 @@ export async function GET(request: Request) {
 
   try {
     await resend.emails.send({
-      from: "ERP System <noreply@deinedomain.com>",
-      to: ["achmet.chakseven1@gmail.com"], 
+      from: "ERP System <noreply@https://gk-ditib.vercel.app>",
+      to: ["ditib@chakseven.com"], 
       subject: "Lagerbestand Warnung - Auffüllen erforderlich",
       html: emailHtml,
     });
