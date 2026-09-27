@@ -217,7 +217,17 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
             className="group relative min-h-11 overflow-hidden rounded-xl px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.98] bg-red-500/10 text-red-300 hover:bg-red-500/18 touch-none select-none"
             type="button"
           >
-            <span className="absolute inset-y-0 left-0 bg-red-500/25 transition-[width] duration-75" style={{ width: `${cancelPressProgress * 100}%` }} />
+            <span
+              className="absolute inset-y-0 left-0 transition-[width] duration-75"
+              style={{
+                width: `${cancelPressProgress * 100}%`,
+                background: 'linear-gradient(90deg, rgba(239,68,68,0.28) 0%, rgba(220,38,38,0.78) 55%, rgba(127,29,29,0.95) 100%)',
+              }}
+            />
+            <span
+              className="absolute inset-0 opacity-0 transition-opacity duration-75 group-active:opacity-100"
+              style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 100%)' }}
+            />
             <span className="relative z-10">
               {isCancelling ? 'Storniert...' : cancelHint ? cancelHint : isCancelHolding ? 'Halten zum Stornieren' : 'Stornieren'}
             </span>
