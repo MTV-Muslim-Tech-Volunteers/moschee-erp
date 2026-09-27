@@ -1,15 +1,32 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { formatTime, timeSince } from '@/lib/kitchen'
 
 export default function OrderCard({ order, onTogglePaid, onToggleReady, onDeleteOrder }: { order: any; onTogglePaid: (id: string, current: boolean) => void; onToggleReady: (id: string, current: boolean) => void; onDeleteOrder: (id: string) => void }) {
   const [toggling, setToggling] = useState(false)
   const [now, setNow] = useState(Date.now())
+  const [cancelPressProgress, setCancelPressProgress] = useState(0)
+  const [cancelHint, setCancelHint] = useState<string | null>(null)
+  const [isCancelHolding, setIsCancelHolding] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const cancelTimerRef = useRef<number | null>(null)
+  const cancelFrameRef = useRef<number | null>(null)
+  const cancelStartRef = useRef<number | null>(null)
+  const cancelTriggeredRef = useRef(false)
+  const hintTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (order.is_ready) return
     const interval = setInterval(() => setNow(Date.now()), 30000)
     return () => clearInterval(interval)
   }, [order.is_ready])
+
+  useEffect(() => {
+    return () => {
+      if (cancelTimerRef.current) window.clearTimeout(cancelTimerRef.current)
+      if (cancelFrameRef.current) window.cancelAnimationFrame(cancelFrameRef.current)
+      if (hintTimerRef.current) window.clearTimeout(hintTimerRef.current)
+    }
+  }, [])
 
   const hasUnavailable = order.order_items.some((i: any) => i.products && !i.products.is_available)
   const elapsedMinutes = Math.floor((now - new Date(order.created_at).getTime()) / 60000)
@@ -19,21 +36,21 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
   let pingColor = 'bg-primary'
 
   if (order.is_ready) {
-    borderColor = 'border-green-500/50'
-    headerBg = 'bg-green-500/10'
+    borderColor = 'border-emerald-500/35'
+    headerBg = 'bg-emerald-500/10'
   } else if (hasUnavailable) {
-    borderColor = 'border-red-400/60'
+    borderColor = 'border-red-400/55'
     headerBg = 'bg-red-500/5'
     pingColor = 'bg-red-500'
   } else {
     if (elapsedMinutes >= 30) {
-      borderColor = 'border-red-500/70'
-      headerBg = 'bg-red-500/15'
+      borderColor = 'border-red-500/60'
+      headerBg = 'bg-red-500/10'
       pingColor = 'bg-red-500'
     } else if (elapsedMinutes >= 15) {
-      borderColor = 'border-amber-500/70'
-      headerBg = 'bg-amber-500/15'
-      pingColor = 'bg-amber-500'
+      borderColor = 'border-[#d9a36c]/60'
+      headerBg = 'bg-[#d9a36c]/10'
+      pingColor = 'bg-[#d9a36c]'
     }
   }
 
@@ -49,66 +66,166 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
     setToggling(false)
   }
 
-  async function handleDelete() {
-    if (!window.confirm('Bestellung wirklich stornieren?')) return
-    setToggling(true)
-    await onDeleteOrder(order.id)
+  function clearCancelHold(resetHint = false) {
+    if (cancelTimerRef.current) {
+      window.clearTimeout(cancelTimerRef.current)
+      cancelTimerRef.current = null
+    }
+
+    if (cancelFrameRef.current) {
+      window.cancelAnimationFrame(cancelFrameRef.current)
+      cancelFrameRef.current = null
+    }
+
+    cancelStartRef.current = null
+    setIsCancelHolding(false)
+    setCancelPressProgress(0)
+
+    if (resetHint) {
+      setCancelHint(null)
+      if (hintTimerRef.current) {
+        window.clearTimeout(hintTimerRef.current)
+        hintTimerRef.current = null
+      }
+    }
+  }
+
+  function showCancelHint() {
+    setCancelHint('3 Sek. halten')
+    if (hintTimerRef.current) {
+      window.clearTimeout(hintTimerRef.current)
+    }
+
+    hintTimerRef.current = window.setTimeout(() => {
+      setCancelHint(null)
+      hintTimerRef.current = null
+    }, 1300)
+  }
+
+  function finishCancel() {
+    if (cancelTriggeredRef.current) return
+    cancelTriggeredRef.current = true
+    clearCancelHold(true)
+    setIsCancelling(true)
+
+    void onDeleteOrder(order.id).finally(() => {
+      setIsCancelling(false)
+      cancelTriggeredRef.current = false
+    })
+  }
+
+  function startCancelHold(event: React.PointerEvent<HTMLButtonElement>) {
+    if (toggling || isCancelling) return
+    if (event.button !== 0 && event.pointerType === 'mouse') return
+
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    setCancelHint(null)
+    setIsCancelHolding(true)
+    cancelTriggeredRef.current = false
+    cancelStartRef.current = performance.now()
+
+    const tick = () => {
+      if (cancelStartRef.current == null) return
+
+      const elapsed = performance.now() - cancelStartRef.current
+      setCancelPressProgress(Math.min(elapsed / 3000, 1))
+
+      if (elapsed >= 3000) {
+        finishCancel()
+        return
+      }
+
+      cancelFrameRef.current = window.requestAnimationFrame(tick)
+    }
+
+    cancelFrameRef.current = window.requestAnimationFrame(tick)
+    cancelTimerRef.current = window.setTimeout(() => {
+      finishCancel()
+    }, 3000)
+  }
+
+  function stopCancelHold() {
+    if (cancelTriggeredRef.current) return
+    if (!isCancelHolding) return
+    clearCancelHold(true)
+  }
+
+  function handleDeleteClick() {
+    if (cancelTriggeredRef.current || isCancelHolding || isCancelling) return
+    showCancelHint()
   }
 
   return (
-    <div className={`rounded-2xl border bg-card shadow-md shadow-black/20 overflow-hidden flex flex-col transition-all duration-300 ${borderColor}`}>
-      <div className={`flex items-start justify-between px-4 pt-4 pb-3 border-b gap-3 transition-colors ${headerBg}`}>
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
+    <div className={`h-full rounded-2xl border bg-[#191512] shadow-[0_18px_40px_rgba(0,0,0,0.28)] overflow-hidden flex flex-col transition-all duration-300 ${borderColor}`}>
+      <div className={`flex items-start justify-between gap-3 border-b border-[#2a221c] px-3.5 pb-2.5 pt-3 transition-colors ${headerBg}`}>
+        <div className="min-w-0 space-y-1">
+          <div className="flex items-center gap-2 min-w-0">
             {!order.is_ready && (
               <span className="flex h-2 w-2 relative">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${pingColor}`} />
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${pingColor}`} />
               </span>
             )}
-            <h3 className="font-bold text-base leading-tight">{order.customer_name ?? 'Unbekannt'}</h3>
+            <h3 className="truncate text-[15px] font-bold leading-tight text-stone-50">{order.customer_name ?? 'Unbekannt'}</h3>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-stone-400">
             <span>{formatTime(order.created_at)}</span>
             <span>·</span>
-            <span className={elapsedMinutes >= 15 && !order.is_ready ? 'text-red-500 font-bold' : ''}>{timeSince(order.created_at)}</span>
+            <span className={elapsedMinutes >= 15 && !order.is_ready ? 'font-bold text-[#f08f72]' : ''}>{timeSince(order.created_at)}</span>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1.5">
-          <span className="text-lg font-bold tabular-nums">{(order.total_price ?? 0).toFixed(2).replace('.', ',')} €</span>
-          <div className="flex flex-col gap-1 items-end">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${order.is_ready ? 'bg-green-500/20 text-green-600' : 'bg-blue-500/20 text-blue-600'}`}>{order.is_ready ? 'Fertig' : 'Zubereitung'}</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${order.is_paid ? 'bg-green-500/20 text-green-600' : 'bg-amber-500/20 text-amber-600'}`}>{order.is_paid ? 'Bezahlt' : 'Offen'}</span>
-            {hasUnavailable && <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-red-500/15 text-red-600">Artikel nicht verfügbar</span>}
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[15px] font-bold tabular-nums text-stone-50">{(order.total_price ?? 0).toFixed(2).replace('.', ',')} €</span>
+          <div className="flex flex-wrap items-end justify-end gap-1.5">
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${order.is_ready ? 'bg-emerald-500/15 text-emerald-300' : 'bg-sky-500/15 text-sky-300'}`}>{order.is_ready ? 'Fertig' : 'Zubereitung'}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${order.is_paid ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>{order.is_paid ? 'Bezahlt' : 'Offen'}</span>
+            {hasUnavailable && <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-medium text-red-300">Artikel nicht verfügbar</span>}
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-3 flex-1 space-y-1.5">
+      <div className="order-items-scrollbar flex-1 min-h-0 space-y-1 overflow-y-auto px-3.5 py-2.5">
         {order.order_items.map((item: any) => {
           const unavailable = item.products && !item.products.is_available
           return (
-            <div key={item.id} className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">{item.quantity}×</span>
-                <span className={unavailable ? 'line-through text-muted-foreground' : 'text-foreground/90'}>{item.products?.name_de ?? 'Unbekanntes Produkt'}</span>
-                {unavailable && <span className="text-[10px] bg-red-500/15 text-red-600 rounded px-1 font-medium">n.v.</span>}
+            <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-[#14110e] px-2.5 py-1.5 text-[13px]">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#2f261f] text-[12px] font-bold text-stone-100">{item.quantity}×</span>
+                <span className={`min-w-0 truncate ${unavailable ? 'line-through text-stone-500' : 'text-stone-200'}`}>{item.products?.name_de ?? 'Unbekanntes Produkt'}</span>
+                {unavailable && <span className="rounded px-1 font-medium text-[10px] bg-red-500/15 text-red-300">n.v.</span>}
               </div>
-              <span className={`tabular-nums ${unavailable ? 'text-muted-foreground/50 line-through' : 'text-muted-foreground'}`}>{(item.price_at_time * item.quantity).toFixed(2).replace('.', ',')} €</span>
+              <span className={`tabular-nums text-[12px] ${unavailable ? 'line-through text-stone-500' : 'text-stone-400'}`}>{(item.price_at_time * item.quantity).toFixed(2).replace('.', ',')} €</span>
             </div>
           )
         })}
       </div>
 
-      <div className="px-4 pb-4 flex flex-col gap-2">
+      <div className="flex flex-col gap-2 px-3.5 pb-3">
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={handleToggleReady} disabled={toggling} className={`py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] ${order.is_ready ? 'bg-muted text-muted-foreground hover:bg-muted/80' : 'bg-blue-500 text-white hover:bg-blue-600'}`}>{order.is_ready ? 'Wieder in Arbeit' : 'Fertig'}</button>
+          <button onClick={handleToggleReady} disabled={toggling} className={`min-h-11 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.98] ${order.is_ready ? 'bg-[#2a221b] text-stone-300 hover:bg-[#322921]' : 'bg-[#d9a36c] text-[#20150d] hover:bg-[#e0b072]'}`}>{order.is_ready ? 'Wieder in Arbeit' : 'Fertig'}</button>
 
-          <button onClick={handleDelete} disabled={toggling} className="py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] bg-destructive/10 text-destructive hover:bg-destructive/20">Stornieren</button>
+          <button
+            onPointerDown={startCancelHold}
+            onPointerUp={stopCancelHold}
+            onPointerLeave={stopCancelHold}
+            onPointerCancel={stopCancelHold}
+            onClick={handleDeleteClick}
+            disabled={toggling || isCancelling}
+            className="group relative min-h-11 overflow-hidden rounded-xl px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.98] bg-red-500/10 text-red-300 hover:bg-red-500/18 touch-none select-none"
+            type="button"
+          >
+            <span className="absolute inset-y-0 left-0 bg-red-500/25 transition-[width] duration-75" style={{ width: `${cancelPressProgress * 100}%` }} />
+            <span className="relative z-10">
+              {isCancelling ? 'Storniert...' : cancelHint ? cancelHint : isCancelHolding ? 'Halten zum Stornieren' : 'Stornieren'}
+            </span>
+          </button>
+
         </div>
 
-        <button onClick={handleTogglePaid} disabled={toggling} className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${order.is_paid ? 'bg-muted text-muted-foreground hover:bg-muted/80' : 'bg-green-500 text-white hover:bg-green-600'}`}>{order.is_paid ? 'Als unbezahlt markieren' : 'Als bezahlt markieren'}</button>
+        <button onClick={handleTogglePaid} disabled={toggling} className={`min-h-11 w-full rounded-xl px-3 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${order.is_paid ? 'bg-[#2a221b] text-stone-300 hover:bg-[#322921]' : 'bg-emerald-500 text-white hover:bg-emerald-600'}`}>{order.is_paid ? 'Unbezahlt' : 'Bezahlt'}</button>
       </div>
     </div>
   )

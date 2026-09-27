@@ -128,3 +128,29 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  .order-items-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(217, 163, 108, 0.45) rgba(42, 34, 28, 0.75);
+  }
+
+  .order-items-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .order-items-scrollbar::-webkit-scrollbar-track {
+    background: rgba(42, 34, 28, 0.75);
+    border-radius: 9999px;
+  }
+
+  .order-items-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(217, 163, 108, 0.45);
+    border-radius: 9999px;
+    border: 2px solid rgba(42, 34, 28, 0.75);
+  }
+
+  .order-items-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(217, 163, 108, 0.65);
+  }
+}
