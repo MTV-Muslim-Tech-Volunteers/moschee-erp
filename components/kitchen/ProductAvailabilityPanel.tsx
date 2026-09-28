@@ -23,14 +23,15 @@ export default function ProductAvailabilityPanel({ products, onToggle, onToggleA
 
   return (
     <div className="rounded-2xl border border-[#2c241d] bg-[#181411] shadow-sm overflow-hidden">
-      <div className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-        <button onClick={() => setOpen((v) => !v)} className="flex flex-1 min-w-0 items-center gap-2.5 text-left transition-opacity hover:opacity-80">
-          <span className="text-base font-semibold text-stone-100">Produktverfügbarkeit</span>
+      
+      {/* Geänderter Header: Kein Überlappen mehr möglich */}
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#201a15] transition-colors">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-base font-semibold text-stone-100 truncate">Produktverfügbarkeit</span>
           {unavailableCount > 0 && <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-bold text-red-300">{unavailableCount} inaktiv</span>}
-        </button>
-
-        <button onClick={() => setOpen((v) => !v)} className="w-full px-1 text-left text-sm text-stone-400 transition-colors hover:text-stone-100 sm:w-auto sm:text-right">{open ? 'Zuklappen' : 'Aufklappen'}</button>
-      </div>
+        </div>
+        <span className="text-sm text-stone-400 shrink-0 ml-2">{open ? 'Zuklappen' : 'Aufklappen'}</span>
+      </button>
 
       {open && (
         <div className="border-t border-[#2c241d] divide-y divide-[#2c241d] bg-[#14110e]">
@@ -43,8 +44,8 @@ export default function ProductAvailabilityPanel({ products, onToggle, onToggleA
               {allAvailable ? 'Alle deaktivieren' : 'Alle aktivieren'}
             </button>
           </div>
-
           {products.length === 0 && <p className="px-5 py-4 text-sm text-stone-400">Keine Produkte gefunden.</p>}
+          
           {products.map((product) => (
             <div key={product.id} className={`flex items-center justify-between px-5 py-3 transition-colors ${!product.is_available ? 'bg-red-500/5' : 'bg-[#14110e]'}`}>
               <div className="flex items-center gap-3">
@@ -54,7 +55,6 @@ export default function ProductAvailabilityPanel({ products, onToggle, onToggleA
                   {product.name_tr && <p className="text-xs text-stone-400">{product.name_tr}</p>}
                 </div>
               </div>
-
               <button onClick={() => handleToggle(product.id, product.is_available)} disabled={toggling === product.id} className={`relative ml-4 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${product.is_available ? 'bg-emerald-500' : 'bg-red-400'}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${product.is_available ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>

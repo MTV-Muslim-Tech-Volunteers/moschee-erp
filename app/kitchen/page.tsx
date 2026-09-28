@@ -15,7 +15,7 @@ import {
 import RevenuePanel from '@/components/kitchen/RevenuePanel'
 import ProductAvailabilityPanel from '@/components/kitchen/ProductAvailabilityPanel'
 import OrderCard from '@/components/kitchen/OrderCard'
-import { formatTime, timeSince, formatEur, buildRevenueData, monthLabel, weekLabel } from '@/lib/kitchen'
+import InventoryPanel from '@/components/kitchen/InventoryPanel'
 
 interface Product {
   id: string
@@ -53,14 +53,12 @@ interface RevenueOrder {
   is_paid: boolean
 }
 
-// Interface für das Inventar
-interface InventoryItem { 
-  id: string; 
-  name: string; 
-  stock: number; 
+interface InventoryItem {
+   id: string;
+   name: string;
+   stock: number;
 }
 
-// Helpers and panels moved to lib/kitchen and components/kitchen
 const MemoizedRevenuePanel = React.memo(RevenuePanel)
 const MemoizedProductAvailabilityPanel = React.memo(ProductAvailabilityPanel)
 const MemoizedOrderCard = React.memo(OrderCard)
@@ -74,22 +72,19 @@ export default function KitchenPage() {
   const [filter, setFilter] = useState<"all" | "active" | "completed">("active")
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
   const mountedRef = useRef(true)
   const pollingRef = useRef<number | null>(null)
 
   const activeItemsSummary = useMemo(() => {
     const counts: Record<string, number> = {}
     orders
-      .filter((o) => !o.is_ready) // Nur noch nicht fertige Bestellungen
+      .filter((o) => !o.is_ready)
       .forEach((order) => {
         order.order_items.forEach((item) => {
           const name = item.products?.name_de ?? "Unbekanntes Produkt"
           counts[name] = (counts[name] || 0) + item.quantity
         })
       })
-      
-    // Konvertieren in ein Array und nach höchster Menge sortieren
     return Object.entries(counts).sort((a, b) => b[1] - a[1])
   }, [orders])
 
@@ -137,13 +132,11 @@ export default function KitchenPage() {
     }
   }, [])
 
-  // Inventar laden
   const fetchInventory = useCallback(async () => {
     const { data, error } = await supabase
       .from("inventory_items")
       .select("id, name, stock")
       .order("name", { ascending: true })
-      
     if (!error && data && mountedRef.current) {
       setInventory(data as InventoryItem[])
     }
@@ -166,9 +159,7 @@ export default function KitchenPage() {
   useEffect(() => {
     mountedRef.current = true
     refreshData()
-
     let timeoutId: number | undefined
-
     const handleRealtimeChange = () => {
       clearTimeout(timeoutId)
       timeoutId = window.setTimeout(() => {
@@ -181,7 +172,7 @@ export default function KitchenPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, handleRealtimeChange)
       .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, handleRealtimeChange)
       .on("postgres_changes", { event: "*", schema: "public", table: "products" }, handleRealtimeChange)
-      .on("postgres_changes", { event: "*", schema: "public", table: "inventory_items" }, handleRealtimeChange) // Auf Inventar-Änderungen reagieren
+      .on("postgres_changes", { event: "*", schema: "public", table: "inventory_items" }, handleRealtimeChange)
       .subscribe()
 
     pollingRef.current = window.setInterval(() => {
@@ -251,27 +242,21 @@ export default function KitchenPage() {
     [fetchOrders]
   )
 
-  // Handler für Bestandsänderung (Packungen)
   const handleStockChange = async (id: string, currentStock: number, delta: number) => {
-    const newStock = Math.max(0, currentStock + delta) // Verhindert negative Zahlen
-    
-    // Optimistic UI Update
+    const newStock = Math.max(0, currentStock + delta) 
     setInventory(prev => prev.map(item => item.id === id ? { ...item, stock: newStock } : item))
     
-    // Server Update
     const result = await updateInventoryStock(id, newStock)
     if (!result.success) {
       alert("Fehler beim Speichern des Bestands: " + result.error)
-      fetchInventory() // Bei Fehler zurücksetzen
+      fetchInventory() 
     }
   }
 
   useEffect(() => {
     if (!sidebarOpen) return
-
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
-
     return () => {
       document.body.style.overflow = previousOverflow
     }
@@ -294,36 +279,35 @@ export default function KitchenPage() {
   const escalationSummary = useMemo(() => {
     let yellowCount = 0
     let redCount = 0
-
     orders.forEach((order) => {
       if (order.is_ready) return
-
       const elapsedMinutes = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000)
       const hasUnavailable = order.order_items.some((item) => item.products && !item.products.is_available)
-
+      
       if (hasUnavailable || elapsedMinutes >= 30) {
         redCount += 1
       } else if (elapsedMinutes >= 15) {
         yellowCount += 1
       }
     })
-
     return {
       yellowCount,
       redCount,
       totalCount: yellowCount + redCount,
-      worstLabel: redCount > 0 ? 'überfällig' : 'wartet'
+      worstLabel: redCount > 0 ? 'Überfällig' : 'wartet'
     }
   }, [orders])
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] text-stone-100">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-4 lg:flex-row lg:px-6 lg:py-6">
+        
+        {/* Sidebar Anpassung hier: h-full hinzugefügt */}
         <aside
           className={`fixed inset-y-0 left-0 z-40 w-[min(22rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] overflow-hidden rounded-r-3xl border border-[#2d241d] bg-[#181411]/96 shadow-2xl shadow-black/35 transition-all duration-300 ${sidebarOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : '-translate-x-[110%] opacity-0 pointer-events-none'}`}
         >
-          <div className="flex flex-col">
-            <div className="flex items-start justify-between border-b border-[#2d241d] px-5 py-4">
+          <div className="flex flex-col h-full">
+            <div className="flex shrink-0 items-start justify-between border-b border-[#2d241d] px-5 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/70">Küchensteuerung</p>
                 <h1 className="mt-1 text-lg font-bold tracking-tight text-stone-100">Sidebar</h1>
@@ -337,14 +321,12 @@ export default function KitchenPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-
             <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
               <MemoizedProductAvailabilityPanel
                 products={products}
                 onToggle={toggleProductAvailability}
                 onToggleAll={toggleAllProductAvailability}
               />
-
               <MemoizedRevenuePanel orders={revenueOrders} />
             </div>
           </div>
@@ -371,7 +353,6 @@ export default function KitchenPage() {
                 </div>
               </div>
             </div>
-
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 href="/kitchen/quick-order"
@@ -398,37 +379,8 @@ export default function KitchenPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#2c241d] bg-[#181411] shadow-sm overflow-hidden">
-            <div className="border-b border-[#2c241d] px-5 py-3.5">
-              <span className="text-base font-semibold text-stone-100">Lagerbestand Zutaten (Packungen)</span>
-            </div>
-            <div className="flex justify-center gap-3 overflow-x-auto px-4 py-4">
-              {inventory.map((item) => (
-                <div key={item.id} className="w-[11.25rem] shrink-0 rounded-xl border border-[#2f261f] bg-[#1b1612] p-3">
-                  <div className="mb-2 flex min-h-[2.5rem] items-center justify-between gap-3 text-left">
-                    <span className="min-w-0 flex-1 text-sm font-medium leading-tight text-stone-100">{item.name}</span>
-                    <span className="ml-1 shrink-0 rounded-md bg-[#2b221c] px-2 py-1 text-xs font-bold text-stone-100">{item.stock}</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => handleStockChange(item.id, item.stock, -1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md bg-[#2b221c] font-bold transition-colors hover:bg-destructive hover:text-destructive-foreground"
-                      type="button"
-                    >
-                      -
-                    </button>
-                    <button
-                      onClick={() => handleStockChange(item.id, item.stock, 1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md bg-[#2b221c] font-bold transition-colors hover:bg-[#d9a36c] hover:text-[#20150d]"
-                      type="button"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Extrahierte Inventar-Komponente */}
+          <InventoryPanel inventory={inventory} onStockChange={handleStockChange} />
 
           {activeItemsSummary.length > 0 && filter !== "completed" && (
             <div className="rounded-2xl border border-[#2c241d] bg-[#181411] shadow-sm p-5">
@@ -495,7 +447,7 @@ export default function KitchenPage() {
                   </p>
                   <p className="text-xs text-current/75">
                     {escalationSummary.redCount > 0
-                      ? 'Rote Bestellungen haben Priorität'
+                      ? 'Rote Bestellungen haben Priorität!'
                       : 'Gelbe Bestellungen sollten bald vorbereitet werden'}
                   </p>
                 </div>

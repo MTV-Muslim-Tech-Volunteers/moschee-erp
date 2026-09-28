@@ -4,15 +4,11 @@ import { formatTime, timeSince } from '@/lib/kitchen'
 export default function OrderCard({ order, onTogglePaid, onToggleReady, onDeleteOrder }: { order: any; onTogglePaid: (id: string, current: boolean) => void; onToggleReady: (id: string, current: boolean) => void; onDeleteOrder: (id: string) => void }) {
   const [toggling, setToggling] = useState(false)
   const [now, setNow] = useState(Date.now())
-  const [cancelPressProgress, setCancelPressProgress] = useState(0)
-  const [cancelHint, setCancelHint] = useState<string | null>(null)
-  const [isCancelHolding, setIsCancelHolding] = useState(false)
+  
+  // Double-Click states
+  const [confirmCancel, setConfirmCancel] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
-  const cancelTimerRef = useRef<number | null>(null)
-  const cancelFrameRef = useRef<number | null>(null)
-  const cancelStartRef = useRef<number | null>(null)
-  const cancelTriggeredRef = useRef(false)
-  const hintTimerRef = useRef<number | null>(null)
+  const cancelTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (order.is_ready) return
@@ -20,11 +16,10 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
     return () => clearInterval(interval)
   }, [order.is_ready])
 
+  // Clean up timeout
   useEffect(() => {
     return () => {
-      if (cancelTimerRef.current) window.clearTimeout(cancelTimerRef.current)
-      if (cancelFrameRef.current) window.cancelAnimationFrame(cancelFrameRef.current)
-      if (hintTimerRef.current) window.clearTimeout(hintTimerRef.current)
+      if (cancelTimeoutRef.current) window.clearTimeout(cancelTimeoutRef.current)
     }
   }, [])
 
@@ -66,95 +61,25 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
     setToggling(false)
   }
 
-  function clearCancelHold(resetHint = false) {
-    if (cancelTimerRef.current) {
-      window.clearTimeout(cancelTimerRef.current)
-      cancelTimerRef.current = null
-    }
-
-    if (cancelFrameRef.current) {
-      window.cancelAnimationFrame(cancelFrameRef.current)
-      cancelFrameRef.current = null
-    }
-
-    cancelStartRef.current = null
-    setIsCancelHolding(false)
-    setCancelPressProgress(0)
-
-    if (resetHint) {
-      setCancelHint(null)
-      if (hintTimerRef.current) {
-        window.clearTimeout(hintTimerRef.current)
-        hintTimerRef.current = null
-      }
-    }
-  }
-
-  function showCancelHint() {
-    setCancelHint('3 Sek. halten')
-    if (hintTimerRef.current) {
-      window.clearTimeout(hintTimerRef.current)
-    }
-
-    hintTimerRef.current = window.setTimeout(() => {
-      setCancelHint(null)
-      hintTimerRef.current = null
-    }, 1300)
-  }
-
-  function finishCancel() {
-    if (cancelTriggeredRef.current) return
-    cancelTriggeredRef.current = true
-    clearCancelHold(true)
-    setIsCancelling(true)
-
-    void Promise.resolve(onDeleteOrder(order.id)).finally(() => {
-      setIsCancelling(false)
-      cancelTriggeredRef.current = false
-    })
-  }
-
-  function startCancelHold(event: React.PointerEvent<HTMLButtonElement>) {
-    if (toggling || isCancelling) return
-    if (event.button !== 0 && event.pointerType === 'mouse') return
-
-    event.preventDefault()
-    event.currentTarget.setPointerCapture(event.pointerId)
-
-    setCancelHint(null)
-    setIsCancelHolding(true)
-    cancelTriggeredRef.current = false
-    cancelStartRef.current = performance.now()
-
-    const tick = () => {
-      if (cancelStartRef.current == null) return
-
-      const elapsed = performance.now() - cancelStartRef.current
-      setCancelPressProgress(Math.min(elapsed / 3000, 1))
-
-      if (elapsed >= 3000) {
-        finishCancel()
-        return
-      }
-
-      cancelFrameRef.current = window.requestAnimationFrame(tick)
-    }
-
-    cancelFrameRef.current = window.requestAnimationFrame(tick)
-    cancelTimerRef.current = window.setTimeout(() => {
-      finishCancel()
-    }, 3000)
-  }
-
-  function stopCancelHold() {
-    if (cancelTriggeredRef.current) return
-    if (!isCancelHolding) return
-    clearCancelHold(true)
-  }
-
+  // Double Click Logic
   function handleDeleteClick() {
-    if (cancelTriggeredRef.current || isCancelHolding || isCancelling) return
-    showCancelHint()
+    if (isCancelling || toggling) return
+    
+    if (confirmCancel) {
+      // Zweiter Klick -> Ausführen
+      if (cancelTimeoutRef.current) window.clearTimeout(cancelTimeoutRef.current)
+      setConfirmCancel(false)
+      setIsCancelling(true)
+      void Promise.resolve(onDeleteOrder(order.id)).finally(() => {
+        setIsCancelling(false)
+      })
+    } else {
+      // Erster Klick -> Bestätigungs-State für 3 Sekunden anzeigen
+      setConfirmCancel(true)
+      cancelTimeoutRef.current = window.setTimeout(() => {
+        setConfirmCancel(false)
+      }, 3000)
+    }
   }
 
   return (
@@ -176,7 +101,6 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
             <span className={elapsedMinutes >= 15 && !order.is_ready ? 'font-bold text-[#f08f72]' : ''}>{timeSince(order.created_at)}</span>
           </div>
         </div>
-
         <div className="flex flex-col items-end gap-1">
           <span className="text-[15px] font-bold tabular-nums text-stone-50">{(order.total_price ?? 0).toFixed(2).replace('.', ',')} €</span>
           <div className="flex flex-wrap items-end justify-end gap-1.5">
@@ -206,35 +130,18 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
       <div className="flex flex-col gap-2 px-3.5 pb-3">
         <div className="grid grid-cols-2 gap-2">
           <button onClick={handleToggleReady} disabled={toggling} className={`min-h-11 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.98] ${order.is_ready ? 'bg-[#2a221b] text-stone-300 hover:bg-[#322921]' : 'bg-[#d9a36c] text-[#20150d] hover:bg-[#e0b072]'}`}>{order.is_ready ? 'Wieder in Arbeit' : 'Fertig'}</button>
-
+          
           <button
-            onPointerDown={startCancelHold}
-            onPointerUp={stopCancelHold}
-            onPointerLeave={stopCancelHold}
-            onPointerCancel={stopCancelHold}
             onClick={handleDeleteClick}
             disabled={toggling || isCancelling}
             className="group relative min-h-11 overflow-hidden rounded-xl px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.98] bg-red-500/10 text-red-300 hover:bg-red-500/18 touch-none select-none"
             type="button"
           >
-            <span
-              className="absolute inset-y-0 left-0 transition-[width] duration-75"
-              style={{
-                width: `${cancelPressProgress * 100}%`,
-                background: 'linear-gradient(90deg, rgba(239,68,68,0.28) 0%, rgba(220,38,38,0.78) 55%, rgba(127,29,29,0.95) 100%)',
-              }}
-            />
-            <span
-              className="absolute inset-0 opacity-0 transition-opacity duration-75 group-active:opacity-100"
-              style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 100%)' }}
-            />
             <span className="relative z-10">
-              {isCancelling ? 'Storniert...' : cancelHint ? cancelHint : isCancelHolding ? 'Halten zum Stornieren' : 'Stornieren'}
+              {isCancelling ? 'Storniert...' : confirmCancel ? 'Erneut drücken' : 'Stornieren'}
             </span>
           </button>
-
         </div>
-
         <button onClick={handleTogglePaid} disabled={toggling} className={`min-h-11 w-full rounded-xl px-3 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${order.is_paid ? 'bg-[#2a221b] text-stone-300 hover:bg-[#322921]' : 'bg-emerald-500 text-white hover:bg-emerald-600'}`}>{order.is_paid ? 'Unbezahlt' : 'Bezahlt'}</button>
       </div>
     </div>
