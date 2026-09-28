@@ -1,23 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
+import {
+   Card,
+   CardContent,
+   CardDescription,
+   CardHeader,
+   CardTitle
+ } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { getTransactions } from '@/app/actions/finance';
 
 interface Transaction {
   id: string;
@@ -35,7 +29,7 @@ export default function KassenbuchUebersichtPage() {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filter-States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
@@ -57,15 +51,11 @@ export default function KassenbuchUebersichtPage() {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const { data, error: dbError } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('transaction_date', { ascending: false })
-        .order('receipt_number', { ascending: false });
-
-      if (dbError) throw dbError;
-
-      const fetched = data as Transaction[];
+      const result = await getTransactions();
+      
+      if (!result.success) throw new Error(result.error);
+      
+      const fetched = result.data as Transaction[];
       setTransactions(fetched);
 
       // Berechnungen für das gesamte System
@@ -94,7 +84,7 @@ export default function KassenbuchUebersichtPage() {
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       result = result.filter(t => 
-        t.description.toLowerCase().includes(query) ||
+         t.description.toLowerCase().includes(query) ||
         t.category.toLowerCase().includes(query) ||
         t.receipt_number.toString().includes(query) ||
         (t.legacy_receipt_number && t.legacy_receipt_number.toLowerCase().includes(query))
@@ -163,12 +153,14 @@ export default function KassenbuchUebersichtPage() {
             <CardTitle className="text-3xl text-primary">{formatEuro(totalBalance)}</CardTitle>
           </CardHeader>
         </Card>
+        
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="font-medium text-muted-foreground">Gesamteinnahmen</CardDescription>
             <CardTitle className="text-3xl text-emerald-600">{formatEuro(incomeSum)}</CardTitle>
           </CardHeader>
         </Card>
+
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="font-medium text-muted-foreground">Gesamtausgaben</CardDescription>
@@ -188,7 +180,6 @@ export default function KassenbuchUebersichtPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-
           <div className="space-y-2">
             <select
               value={selectedYear}
@@ -200,7 +191,6 @@ export default function KassenbuchUebersichtPage() {
               <option value="2025">2025 (Importiert)</option>
             </select>
           </div>
-
           <div className="space-y-2">
             <select
               value={selectedType}

@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import ReceiptForm from '@/components/ausgaben/ReceiptForm';
 import StapelTable from '@/components/ausgaben/StapelTable';
 import SuccessScreen from '@/components/ausgaben/SuccessScreen';
 import { LocalReceipt, SavedReceipt, CATEGORIES, formatEuro, formatDate } from '@/lib/ausgaben';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { saveTransactions } from '@/app/actions/finance';
 
 export default function AusgabenStapelPage() {
   const [stapel, setStapel] = useState<LocalReceipt[]>([]);
@@ -15,7 +14,6 @@ export default function AusgabenStapelPage() {
   const [amountStr, setAmountStr] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedReceipts, setSavedReceipts] = useState<SavedReceipt[] | null>(null);
@@ -58,7 +56,6 @@ export default function AusgabenStapelPage() {
 
   const handleSaveToDatabase = async () => {
     if (stapel.length === 0) return;
-
     setLoading(true);
     setError(null);
 
@@ -71,14 +68,11 @@ export default function AusgabenStapelPage() {
     }));
 
     try {
-      const { data, error: dbError } = await supabase
-        .from('transactions')
-        .insert(dbPayload)
-        .select();
+      const result = await saveTransactions(dbPayload);
+      
+      if (!result.success) throw new Error(result.error);
 
-      if (dbError) throw dbError;
-
-      const sortedResult = (data as SavedReceipt[]).sort((a, b) => a.receipt_number - b.receipt_number);
+      const sortedResult = (result.data as SavedReceipt[]).sort((a, b) => a.receipt_number - b.receipt_number);
       setSavedReceipts(sortedResult);
       setStapel([]);
     } catch (err: any) {
