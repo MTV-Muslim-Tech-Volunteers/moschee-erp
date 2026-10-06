@@ -17,45 +17,53 @@ export async function GET(request: Request) {
 
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  // Prüft die NEUE Tabelle 'inventory_items'
-  const { data: lowStockItems, error: fetchError } = await supabaseAdmin
+  const { data: potentialItems, error: fetchError } = await supabaseAdmin
     .from("inventory_items")
     .select("*")
-    .filter("stock", "lte", "low_stock_threshold")
     .or(`last_stock_notification.is.null,last_stock_notification.lt.${twentyFourHoursAgo}`);
 
   if (fetchError) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
 
-  if (!lowStockItems || lowStockItems.length === 0) {
-    return NextResponse.json({ success: true, message: "Bestand im grünen Bereich." });
+  const lowStockItems = potentialItems?.filter(
+    (item) => item.stock <= item.low_stock_threshold
+  ) || [];
+
+  if (lowStockItems.length === 0) {
+    return NextResponse.json({ success: true, message: "Bestand im grünen Bereich oder Benachrichtigungs-Cooldown aktiv." });
   }
 
   const emailHtml = `
     <h2>Lagerbestand Warnung (Küche)</h2>
     <p>Folgende Zutaten müssen nachgekauft werden:</p>
     <ul>
-      ${lowStockItems.map(item => `<li><strong>${item.name}</strong>: Aktuell ${item.stock} Packungen (Warnung ab ${item.low_stock_threshold})</li>`).join("")}
+      ${lowStockItems.map(item => `<li><strong>${item.name}</strong>: Aktuell ${item.stock} Packungen (Warnung ab${item.low_stock_threshold})</li>`).join("")}
     </ul>
   `;
 
-  try {
-    await resend.emails.send({
-      from: "ERP System <noreply@https://gk-ditib.vercel.app>",
-      to: ["ditib@chakseven.com"], 
-      subject: "Lagerbestand Warnung - Auffüllen erforderlich",
-      html: emailHtml,
-    });
+  const { data: resendData, error: resendError } = await resend.emails.send({
+    from: "Moschee ERP <noreply@gk.chakseven.com>",
+    to: ["gk-ditib@chakseven.com"],
+    subject: "Lagerbestand Warnung - Auffüllen erforderlich",
+    html: emailHtml,
+  });
 
-    const itemIds = lowStockItems.map(item => item.id);
-    await supabaseAdmin
-      .from("inventory_items")
-      .update({ last_stock_notification: new Date().toISOString() })
-      .in("id", itemIds);
-
-    return NextResponse.json({ success: true, notifiedCount: lowStockItems.length });
-  } catch (error) {
-    return NextResponse.json({ error: "Emailversand fehlgeschlagen" }, { status: 500 });
+  if (resendError) {
+    console.error("Resend API Fehler:", resendError);
+    return NextResponse.json({ error: "Emailversand fehlgeschlagen", details: resendError }, { status: 500 });
   }
+
+  const itemIds = lowStockItems.map(item => item.id);
+
+  const { error: updateError } = await supabaseAdmin
+    .from("inventory_items")
+    .update({ last_stock_notification: new Date().toISOString() })
+    .in("id", itemIds);
+
+  if (updateError) {
+    console.error("Supabase Update Fehler:", updateError);
+  }
+
+  return NextResponse.json({ success: true, notifiedCount: lowStockItems.length, emailId: resendData?.id });
 }
