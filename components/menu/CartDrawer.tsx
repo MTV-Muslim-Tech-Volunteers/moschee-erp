@@ -10,7 +10,6 @@ export default function CartDrawer({
   onUpdateQty,
   onRemove,
   onOrder,
-  onOrderSuccess,
 }: {
   cart: CartItem[]
   lang: Language
@@ -19,7 +18,6 @@ export default function CartDrawer({
   onUpdateQty: (productId: string, delta: number) => void
   onRemove: (productId: string) => void
   onOrder: (name: string) => Promise<void>
-  onOrderSuccess: () => void
 }) {
   const [customerName, setCustomerName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,7 +34,6 @@ export default function CartDrawer({
       setCustomerName('')
       setLoading(false)
       onClose()
-      onOrderSuccess()
     } catch {
       setError(lang === 'de' ? 'Bestellung fehlgeschlagen.' : 'Sipariş başarısız.')
       setLoading(false)

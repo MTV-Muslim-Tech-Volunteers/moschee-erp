@@ -2,7 +2,7 @@
 
 "use client"
 
-import { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react"
+import { useEffect, useState, useCallback, useSyncExternalStore } from "react"
 import Image from "next/image"
 import { supabase } from "@/lib/supabase"
 import ProductSkeleton from "@/components/menu/ProductSkeleton"
@@ -19,24 +19,6 @@ export default function MenuPage() {
   const [cartOpen, setCartOpen] = useState(false)
   const [trackedOrders, setTrackedOrders] = useState<TrackedOrder[]>([])
   const isClient = useSyncExternalStore(() => () => {}, () => true, () => false)
-  const [orderConfirmation, setOrderConfirmation] = useState<string | null>(null)
-  const orderConfirmationTimeoutRef = useRef<number | null>(null)
-
-  const showOrderConfirmation = useCallback(() => {
-    setOrderConfirmation(
-      lang === "de"
-        ? "Bestellung erfolgreich aufgegeben!"
-        : "Siparişiniz başarıyla alındı!"
-    )
-    if (orderConfirmationTimeoutRef.current) {
-      window.clearTimeout(orderConfirmationTimeoutRef.current)
-    }
-    orderConfirmationTimeoutRef.current = window.setTimeout(() => {
-      setOrderConfirmation(null)
-      orderConfirmationTimeoutRef.current = null
-    }, 5000)
-  }, [lang])
-
   useEffect(() => {
     async function fetchProducts() {
       const { data, error } = await supabase.from("products").select("*").order("category").order("name_de")
@@ -66,14 +48,6 @@ export default function MenuPage() {
       localStorage.setItem("my_cart", JSON.stringify(cart))
     }
   }, [cart, isClient])
-
-  useEffect(() => {
-    return () => {
-      if (orderConfirmationTimeoutRef.current) {
-        window.clearTimeout(orderConfirmationTimeoutRef.current)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     if (trackedOrders.length === 0) return
@@ -224,12 +198,6 @@ export default function MenuPage() {
 
         {error && <div className="text-red-500 text-center">{error}</div>}
 
-        {orderConfirmation && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-center text-sm font-medium text-emerald-700">
-            {orderConfirmation}
-          </div>
-        )}
-        
         {loading && (
            <div className="grid grid-cols-2 gap-4">
              {Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)}
@@ -272,7 +240,6 @@ export default function MenuPage() {
           onUpdateQty={updateQty}
           onRemove={removeFromCart}
           onOrder={placeOrder}
-          onOrderSuccess={showOrderConfirmation}
         />
       )}
     </main>
