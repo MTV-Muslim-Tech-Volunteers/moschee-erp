@@ -2,24 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Image from "next/image"
 import { supabase } from "@/lib/supabase"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-
-interface Product {
-  id: string
-  name_de: string
-  name_tr: string
-  description_de: string
-  description_tr: string
-  price: number
-  image_url: string | null
-  is_available: boolean
-  category: string
-}
-
-type Language = "de" | "tr"
+import ProductDetailView from "@/components/menu/ProductDetailView"
+import type { Language, Product } from "@/lib/menu"
 
 export default function ProductDetailPage() {
   const params = useParams()
@@ -71,85 +57,5 @@ export default function ProductDetailPage() {
     )
   }
 
-  const name = lang === "de" ? product.name_de : product.name_tr
-  const description = lang === "de" ? product.description_de : product.description_tr
-
-  return (
-    <main className="min-h-screen bg-background pb-24">
-      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between">
-        <button 
-          onClick={() => router.back()} 
-          className="flex items-center gap-2 text-sm font-semibold hover:bg-muted px-3 py-2 rounded-xl transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          {lang === "de" ? "Zurück" : "Geri"}
-        </button>
-
-        <div className="inline-flex rounded-lg border bg-background p-1 gap-1">
-          {(["de", "tr"] as Language[]).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
-              className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              {l === "de" ? "DE" : "TR"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-center px-4 pt-8 pb-4">
-          <div className="relative w-full max-w-[280px] sm:max-w-[160px] aspect-square bg-muted rounded-2xl border shadow-md overflow-hidden">
-            {product.image_url ? (
-              <Image src={product.image_url} alt={name} fill className="object-cover" priority />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-sm">
-                Kein Bild
-              </div>
-            )}
-            {!product.is_available && (
-              <div className="absolute inset-0 bg-background/80 flex items-center justify-center backdrop-blur-sm">
-                <Badge variant="destructive" className="text-sm px-3 py-1.5 shadow-xl text-center leading-tight">
-                  {lang === "de" ? "Zurzeit nicht verfügbar" : "Şu an mevcut değil"}
-                </Badge>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-5 space-y-5">
-          <div className="flex justify-between items-start gap-4">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground leading-tight">
-              {name}
-            </h1>
-            <span className="text-2xl font-black text-primary tabular-nums shrink-0">
-              {product.price.toFixed(2).replace(".", ",")} €
-            </span>
-          </div>
-
-          <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
-            {product.category}
-          </div>
-
-          <div className="pt-4 border-t">
-            <h3 className="text-sm font-bold text-muted-foreground mb-3">
-              {lang === "de" ? "Beschreibung" : "Açıklama"}
-            </h3>
-            {description ? (
-              <p className="text-base text-foreground/90 leading-relaxed">
-                {description}
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                {lang === "de" ? "Keine Beschreibung verfügbar." : "Açıklama bulunmuyor."}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    </main>
-  )
+  return <ProductDetailView product={product} lang={lang} onBack={() => router.back()} onLanguageChange={setLang} />
 }
