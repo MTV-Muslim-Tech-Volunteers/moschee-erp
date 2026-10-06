@@ -25,10 +25,26 @@ export interface TrackedOrder {
 export type Language = "de" | "tr"
 
 export function groupByCategory(products: Product[]): Record<string, Product[]> {
-  return products.reduce<Record<string, Product[]>>((acc, product) => {
+  const grouped = products.reduce<Record<string, Product[]>>((acc, product) => {
     const key = product.category ?? "Sonstiges"
     if (!acc[key]) acc[key] = []
     acc[key].push(product)
     return acc
   }, {})
+
+  return Object.fromEntries(
+    Object.entries(grouped).map(([category, categoryProducts]) => {
+      const firstToastIndex = categoryProducts.findIndex((product) =>
+        product.name_de.toLocaleLowerCase().includes("toast")
+      )
+      if (firstToastIndex === -1) return [category, categoryProducts]
+
+      const isToast = (product: Product) => product.name_de.toLocaleLowerCase().includes("toast")
+      return [category, [
+        ...categoryProducts.slice(0, firstToastIndex).filter((product) => !isToast(product)),
+        ...categoryProducts.filter(isToast),
+        ...categoryProducts.slice(firstToastIndex + 1).filter((product) => !isToast(product)),
+      ]]
+    })
+  )
 }
