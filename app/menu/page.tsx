@@ -164,20 +164,22 @@ export default function MenuPage() {
   const categories = Object.keys(grouped)
 
   return (
-    <main className="min-h-screen bg-muted/40 py-10 px-4 pb-24">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] py-10 px-4 pb-24 text-stone-100">
       <div className="max-w-5xl mx-auto space-y-10">
 
         <div className="flex flex-col items-center gap-4 text-center">
-          <Image src="/ditib-gk-logo.png" alt="Logo" width={80} height={80} className="rounded-full" />
+          <div className="rounded-full border border-[#d9a36c]/70 bg-white/60 p-1 shadow-[0_2px_8px_rgba(120,80,40,0.12)]">
+            <Image src="/ditib-gk-logo.png" alt="Logo" width={80} height={80} className="rounded-full" />
+          </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Speisekarte</h1>
           </div>
-          <div className="inline-flex rounded-lg border bg-background p-1 gap-1">
+          <div className="inline-flex rounded-lg border border-[#31271f] bg-[#181411] p-1 gap-1 shadow-sm">
             {(["de", "tr"] as Language[]).map((l) => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${lang === l ? "bg-[#d9a36c] text-[#24160e]" : "text-stone-200 hover:bg-[#231b16]"}`}
               >
                 {l === "de" ? "Deutsch" : "Türkçe"}
               </button>
@@ -187,7 +189,7 @@ export default function MenuPage() {
 
         {isClient && trackedOrders.length > 0 && (
           <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-3 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 animate-pulse"></div>
+            <div className="absolute top-0 left-0 w-1 h-full bg-[#d9a36c] animate-pulse"></div>
             <div className="flex justify-between items-center">
                <h3 className="font-bold text-sm">
                  {lang === "de" ? "Ihre aktiven Bestellungen" : "Aktif Siparişleriniz"}
@@ -208,8 +210,8 @@ export default function MenuPage() {
                     ) : order.is_ready ? (
                       <span className="bg-green-500/20 text-green-600 px-2.5 py-1 rounded-full font-semibold text-xs">Abholbereit!</span>
                     ) : (
-                      <span className="bg-blue-500/20 text-blue-600 px-2.5 py-1 rounded-full font-semibold text-xs flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping"></span>
+                      <span className="bg-blue-500/15 text-blue-700 px-2.5 py-1 rounded-full font-semibold text-xs flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
                         Wird zubereitet...
                       </span>
                     )}
@@ -236,7 +238,7 @@ export default function MenuPage() {
 
         {!loading && !error && categories.map((category) => (
           <section key={category} className="space-y-4">
-            <div className="flex items-center gap-2 border-b pb-3">
+            <div className="flex items-center gap-2 border-b border-slate-400/70 pb-3">
               <h2 className="text-xl font-semibold tracking-tight">{category}</h2>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -255,9 +257,9 @@ export default function MenuPage() {
       </div>
 
       {isClient && totalCartItems > 0 && (
-        <button onClick={() => setCartOpen(true)} className="fixed bottom-6 right-6 z-30 flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-primary text-primary-foreground shadow-2xl font-semibold text-sm transition-all hover:bg-primary/90">
+        <button onClick={() => setCartOpen(true)} className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-2xl border border-[#d9a36c] px-5 py-3.5 bg-[#d9a36c] text-[#24160e] shadow-[0_6px_16px_rgba(120,80,40,0.24)] font-semibold text-sm transition-all hover:bg-[#e4b37d] hover:-translate-y-0.5">
           <span>{lang === "de" ? "Warenkorb" : "Sepet"}</span>
-          <span className="bg-primary-foreground text-primary rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center">{totalCartItems}</span>
+          <span className="bg-slate-900 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center">{totalCartItems}</span>
         </button>
       )}
 

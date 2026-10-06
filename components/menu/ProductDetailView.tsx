@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import type { Language, Product } from "@/lib/menu"
 
@@ -15,6 +16,7 @@ export default function ProductDetailView({
   onBack: () => void
   onLanguageChange: (language: Language) => void
 }) {
+  const [imageFailed, setImageFailed] = useState(false)
   const name = lang === "de" ? product.name_de : product.name_tr
   const description = lang === "de" ? product.description_de : product.description_tr
 
@@ -47,8 +49,8 @@ export default function ProductDetailView({
       <div className="mx-auto max-w-2xl">
         <div className="flex justify-center px-4 pb-4 pt-8">
           <div className="relative aspect-square w-full max-w-[280px] overflow-hidden rounded-2xl border bg-muted shadow-md sm:max-w-[160px]">
-            {product.image_url ? (
-              <Image src={product.image_url} alt={name} fill className="object-cover" priority />
+            {product.image_url && !imageFailed ? (
+              <Image src={product.image_url} alt={name} fill className="object-cover" priority onError={() => setImageFailed(true)} />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground/30">Kein Bild</div>
             )}
