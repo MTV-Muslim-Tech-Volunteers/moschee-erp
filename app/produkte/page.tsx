@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { supabase } from '@/lib/supabase'
-import Image from 'next/image'
 import { createProduct } from './actions'
 
 import ProductForm from '@/components/admin/ProductForm'
@@ -23,17 +21,6 @@ export default function AdminProductForm() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleCategoryChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, category: value }))
-  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

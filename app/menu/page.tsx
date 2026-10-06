@@ -2,12 +2,9 @@
 
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 import ProductSkeleton from "@/components/menu/ProductSkeleton"
 import ProductCard from "@/components/menu/ProductCard"
 import CartDrawer from "@/components/menu/CartDrawer"
@@ -21,7 +18,7 @@ export default function MenuPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
   const [trackedOrders, setTrackedOrders] = useState<TrackedOrder[]>([])
-  const [isClient, setIsClient] = useState(false)
+  const isClient = useSyncExternalStore(() => () => {}, () => true, () => false)
   const [orderConfirmation, setOrderConfirmation] = useState<string | null>(null)
   const orderConfirmationTimeoutRef = useRef<number | null>(null)
 
@@ -51,16 +48,17 @@ export default function MenuPage() {
   }, [])
 
   useEffect(() => {
-    setIsClient(true)
     const savedCart = localStorage.getItem("my_cart")
     const savedOrders = localStorage.getItem("my_tracked_orders")
-    
-    if (savedCart) {
-      try { setCart(JSON.parse(savedCart)) } catch (e) { console.error(e) }
-    }
-    if (savedOrders) {
-      try { setTrackedOrders(JSON.parse(savedOrders)) } catch (e) { console.error(e) }
-    }
+
+    queueMicrotask(() => {
+      if (savedCart) {
+        try { setCart(JSON.parse(savedCart)) } catch (e) { console.error(e) }
+      }
+      if (savedOrders) {
+        try { setTrackedOrders(JSON.parse(savedOrders)) } catch (e) { console.error(e) }
+      }
+    })
   }, [])
 
   useEffect(() => {
@@ -223,6 +221,12 @@ export default function MenuPage() {
         )}
 
         {error && <div className="text-red-500 text-center">{error}</div>}
+
+        {orderConfirmation && (
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-center text-sm font-medium text-emerald-700">
+            {orderConfirmation}
+          </div>
+        )}
         
         {loading && (
            <div className="grid grid-cols-2 gap-4">

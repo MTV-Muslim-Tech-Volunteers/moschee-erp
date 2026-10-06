@@ -75,9 +75,9 @@ export default function AusgabenStapelPage() {
       const sortedResult = (result.data as SavedReceipt[]).sort((a, b) => a.receipt_number - b.receipt_number);
       setSavedReceipts(sortedResult);
       setStapel([]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'Ein unerwarteter Fehler ist aufgetreten.');
+      setError(err instanceof Error ? err.message : 'Ein unerwarteter Fehler ist aufgetreten.');
     } finally {
       setLoading(false);
     }

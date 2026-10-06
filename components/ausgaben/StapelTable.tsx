@@ -1,8 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
-import type { LocalReceipt, SavedReceipt } from '@/lib/ausgaben';
+import type { LocalReceipt } from '@/lib/ausgaben';
 
 interface Props {
   stapel: LocalReceipt[];

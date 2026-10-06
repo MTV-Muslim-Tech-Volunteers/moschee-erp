@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { formatTime, timeSince } from '@/lib/kitchen'
+import { formatTime, timeSince, type KitchenOrder } from '@/lib/kitchen'
 
-export default function OrderCard({ order, onTogglePaid, onToggleReady, onDeleteOrder }: { order: any; onTogglePaid: (id: string, current: boolean) => void; onToggleReady: (id: string, current: boolean) => void; onDeleteOrder: (id: string) => void }) {
+export default function OrderCard({ order, onTogglePaid, onToggleReady, onDeleteOrder }: { order: KitchenOrder; onTogglePaid: (id: string, current: boolean) => void; onToggleReady: (id: string, current: boolean) => void; onDeleteOrder: (id: string) => void }) {
   const [toggling, setToggling] = useState(false)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
   
   // Double-Click states
   const [confirmCancel, setConfirmCancel] = useState(false)
@@ -23,7 +23,7 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
     }
   }, [])
 
-  const hasUnavailable = order.order_items.some((i: any) => i.products && !i.products.is_available)
+  const hasUnavailable = order.order_items.some((i) => i.products && !i.products.is_available)
   const elapsedMinutes = Math.floor((now - new Date(order.created_at).getTime()) / 60000)
 
   let borderColor = 'border-primary/30'
@@ -112,7 +112,7 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
       </div>
 
       <div className="order-items-scrollbar flex-1 min-h-0 space-y-1 overflow-y-auto px-3.5 py-2.5">
-        {order.order_items.map((item: any) => {
+        {order.order_items.map((item) => {
           const unavailable = item.products && !item.products.is_available
           return (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-[#14110e] px-2.5 py-1.5 text-[13px]">

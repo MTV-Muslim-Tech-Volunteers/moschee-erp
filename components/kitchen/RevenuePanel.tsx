@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react'
 import { getMonthlyOrdersData } from '@/app/kitchen/actions'
-import { buildRevenueData, formatEur, monthLabel, weekLabel } from '@/lib/kitchen'
+import { buildRevenueData, formatEur, monthLabel, weekLabel, type RevenueMonth, type RevenueOrder } from '@/lib/kitchen'
 
-export default function RevenuePanel({ orders }: { orders: any[] }) {
+export default function RevenuePanel({ orders }: { orders: RevenueOrder[] }) {
   const [open, setOpen] = useState(false)
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState<string | null>(null)
 
   const data = useMemo(() => buildRevenueData(orders), [orders])
-  const totalAll = useMemo(() => data.reduce((s: number, m: any) => s + m.total, 0), [data])
+  const totalAll = useMemo(() => data.reduce((sum, month) => sum + month.total, 0), [data])
 
   const handleExportCSV = async (monthKey: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -22,7 +22,7 @@ export default function RevenuePanel({ orders }: { orders: any[] }) {
       }
 
       const headers = ['Datum', 'Uhrzeit', 'Kunde', 'Summe (€)', 'Status', 'Artikel']
-      const rows = result.data.map((order: any) => {
+      const rows = result.data.map((order) => {
         const date = new Date(order.created_at)
         const dateStr = date.toLocaleDateString('de-DE')
         const timeStr = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
@@ -30,7 +30,7 @@ export default function RevenuePanel({ orders }: { orders: any[] }) {
         const total = (order.total_price || 0).toFixed(2).replace('.', ',')
         const status = order.is_paid ? 'Bezahlt' : 'Offen'
 
-        const items = order.order_items.map((item: any) => `${item.quantity}x ${item.products?.name_de || 'Unbekannt'}`).join('; ')
+        const items = order.order_items.map((item) => `${item.quantity}x ${item.products?.[0]?.name_de || 'Unbekannt'}`).join('; ')
 
         return [
           `"${dateStr}"`,
@@ -52,7 +52,7 @@ export default function RevenuePanel({ orders }: { orders: any[] }) {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-    } catch (err) {
+    } catch {
       alert('Ein Fehler ist beim CSV-Export aufgetreten.')
     } finally {
       setIsExporting(null)
@@ -75,7 +75,7 @@ export default function RevenuePanel({ orders }: { orders: any[] }) {
             <p className="text-sm text-muted-foreground px-5 py-4">Keine bezahlten Bestellungen vorhanden.</p>
           ) : (
             <div className="divide-y">
-              {data.map((month: any) => (
+              {data.map((month: RevenueMonth) => (
                 <div key={month.key}>
                   <button onClick={() => setExpandedMonth((v) => (v === month.key ? null : month.key))} className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/40 transition-colors text-left">
                     <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export default function RevenuePanel({ orders }: { orders: any[] }) {
 
                   {expandedMonth === month.key && (
                     <div className="bg-muted/30 divide-y divide-border/50">
-                      {month.weeks.map((week: any) => (
+                      {month.weeks.map((week) => (
                         <div key={week.key} className="flex items-center justify-between px-8 py-2.5">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-medium text-muted-foreground w-12">{weekLabel(week.key)}</span>

@@ -51,6 +51,7 @@ interface RevenueOrder {
   created_at: string
   total_price: number | null
   is_paid: boolean
+  order_items: import('@/lib/kitchen').OrderItem[]
 }
 
 interface InventoryItem {
@@ -158,7 +159,9 @@ export default function KitchenPage() {
 
   useEffect(() => {
     mountedRef.current = true
-    refreshData()
+    queueMicrotask(() => {
+      void refreshData()
+    })
     let timeoutId: number | undefined
     const handleRealtimeChange = () => {
       clearTimeout(timeoutId)
@@ -281,7 +284,7 @@ export default function KitchenPage() {
     let redCount = 0
     orders.forEach((order) => {
       if (order.is_ready) return
-      const elapsedMinutes = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000)
+      const elapsedMinutes = Math.floor((lastRefresh.getTime() - new Date(order.created_at).getTime()) / 60000)
       const hasUnavailable = order.order_items.some((item) => item.products && !item.products.is_available)
       
       if (hasUnavailable || elapsedMinutes >= 30) {
@@ -296,7 +299,7 @@ export default function KitchenPage() {
       totalCount: yellowCount + redCount,
       worstLabel: redCount > 0 ? 'Überfällig' : 'wartet'
     }
-  }, [orders])
+  }, [lastRefresh, orders])
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] text-stone-100">

@@ -5,6 +5,44 @@ export interface Product {
   is_available: boolean
 }
 
+export interface OrderItem {
+  id: string
+  quantity: number
+  price_at_time: number
+  products: Product | null
+}
+
+export interface KitchenOrder {
+  id: string
+  created_at: string
+  customer_name: string | null
+  total_price: number | null
+  is_paid: boolean
+  is_ready: boolean
+  order_items: OrderItem[]
+}
+
+export interface RevenueOrder {
+  id: string
+  created_at: string
+  total_price: number | null
+  is_paid: boolean
+  order_items: OrderItem[]
+}
+
+export interface RevenueWeek {
+  key: string
+  total: number
+  orderCount: number
+}
+
+export interface RevenueMonth {
+  key: string
+  total: number
+  orderCount: number
+  weeks: RevenueWeek[]
+}
+
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
@@ -50,7 +88,7 @@ export function weekLabel(key: string): string {
   return `KW ${parseInt(week)}`
 }
 
-export function buildRevenueData(orders: any[]) {
+export function buildRevenueData(orders: RevenueOrder[]): RevenueMonth[] {
   const paid = orders.filter((o) => o.is_paid && o.total_price != null)
   const monthMap = new Map<string, Map<string, { total: number; count: number }>>()
 
@@ -67,7 +105,7 @@ export function buildRevenueData(orders: any[]) {
     entry.count += 1
   }
 
-  const months: any[] = []
+  const months: RevenueMonth[] = []
   for (const [mk, wMap] of monthMap.entries()) {
     const weeks = Array.from(wMap.entries())
       .map(([wk, { total, count }]) => ({ key: wk, total, orderCount: count }))

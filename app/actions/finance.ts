@@ -25,7 +25,7 @@ export async function getTransactions() {
 }
 
 // Speichert neue Ausgaben aus dem Stapel
-export async function saveTransactions(payload: any[]) {
+export async function saveTransactions(payload: Array<Record<string, unknown>>) {
   if (!(await isAuthorized())) return { success: false, error: "Keine Berechtigung" }
 
   const { data, error } = await supabaseAdmin

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import type { CartItem, TrackedOrder } from '@/lib/menu'
+import type { CartItem } from '@/lib/menu'
 import type { Language } from '@/lib/menu'
 
 export default function CartDrawer({
