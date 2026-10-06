@@ -30,7 +30,12 @@ export default function RevenuePanel({ orders }: { orders: RevenueOrder[] }) {
         const total = (order.total_price || 0).toFixed(2).replace('.', ',')
         const status = order.is_paid ? 'Bezahlt' : 'Offen'
 
-        const items = order.order_items.map((item) => `${item.quantity}x ${item.products?.[0]?.name_de || 'Unbekannt'}`).join('; ')
+        const items = order.order_items.map((item) => {
+          const product = Array.isArray(item.products)
+            ? item.products[0]
+            : (item.products as { name_de?: string } | null)
+          return `${item.quantity}x ${product?.name_de || 'Unbekannt'}`
+        }).join('; ')
 
         return [
           `"${dateStr}"`,
