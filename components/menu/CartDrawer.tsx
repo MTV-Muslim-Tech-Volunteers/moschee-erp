@@ -87,7 +87,7 @@ export default function CartDrawer({
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder={lang === 'de' ? 'z. B. Max Müller' : 'örn. Ali Yılmaz'}
+                placeholder={lang === 'de' ? 'z. B. Ahmet Yılmaz' : 'örn. Ahmet Yılmaz'}
                 className="w-full px-3 py-2.5 rounded-lg border border-[#31271f] bg-[#181411] text-stone-100 placeholder:text-stone-500 text-sm outline-none focus:border-[#d9a36c] transition"
                 onKeyDown={(e) => { if (e.key === 'Enter' && customerName.trim()) handleOrder() }}
               />
