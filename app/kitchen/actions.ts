@@ -1,6 +1,7 @@
 "use server"
 
 import { supabaseAdmin } from "@/lib/supabase-admin"
+import { getISOWeekDateRange } from "@/lib/kitchen"
 
 export async function updateOrderStatus(id: string, data: { is_paid?: boolean; is_ready?: boolean }) {
   try {
@@ -112,6 +113,37 @@ export async function getMonthlyOrdersData(monthKey: string) {
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : "Ein unbekannter Fehler ist aufgetreten."
     return { success: false, error: errorMessage }
+  }
+}
+
+export async function getWeeklyOrdersData(weekKey: string) {
+  const { start, end } = getISOWeekDateRange(weekKey)
+  const endExclusive = new Date(end)
+  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1)
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("orders")
+      .select(`
+        id,
+        created_at,
+        customer_name,
+        total_price,
+        is_paid,
+        order_items (
+          quantity,
+          price_at_time,
+          products ( name_de )
+        )
+      `)
+      .gte("created_at", start.toISOString())
+      .lt("created_at", endExclusive.toISOString())
+      .order("created_at", { ascending: false })
+
+    if (error) return { success: false, error: error.message }
+    return { success: true, data }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : "Ein unbekannter Fehler ist aufgetreten." }
   }
 }
 

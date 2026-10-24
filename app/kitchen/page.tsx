@@ -4,6 +4,7 @@ import Link from 'next/link'
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { ArrowLeft, Menu, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { filterKitchenOrders, getEscalationSummary, summarizeActiveItems, type KitchenFilter, type KitchenOrder, type Product } from '@/lib/kitchen'
 import {
   updateOrderStatus,
   deleteOrder as deleteOrderAction,
@@ -12,47 +13,9 @@ import {
   updateInventoryStock,
 } from './actions'
 
-import RevenuePanel from '@/components/kitchen/RevenuePanel'
 import ProductAvailabilityPanel from '@/components/kitchen/ProductAvailabilityPanel'
 import OrderCard from '@/components/kitchen/OrderCard'
 import InventoryPanel from '@/components/kitchen/InventoryPanel'
-
-interface Product {
-  id: string
-  name_de: string
-  name_tr: string
-  is_available: boolean
-}
-
-interface OrderItem {
-  id: string
-  quantity: number
-  price_at_time: number
-  products: {
-    id: string
-    name_de: string
-    name_tr: string
-    is_available: boolean
-  } | null
-}
-
-interface Order {
-  id: string
-  created_at: string
-  customer_name: string | null
-  total_price: number | null
-  is_paid: boolean
-  is_ready: boolean
-  order_items: OrderItem[]
-}
-
-interface RevenueOrder {
-  id: string
-  created_at: string
-  total_price: number | null
-  is_paid: boolean
-  order_items: import('@/lib/kitchen').OrderItem[]
-}
 
 interface InventoryItem {
    id: string;
@@ -60,34 +23,21 @@ interface InventoryItem {
    stock: number;
 }
 
-const MemoizedRevenuePanel = React.memo(RevenuePanel)
 const MemoizedProductAvailabilityPanel = React.memo(ProductAvailabilityPanel)
 const MemoizedOrderCard = React.memo(OrderCard)
 
 export default function KitchenPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [revenueOrders, setRevenueOrders] = useState<RevenueOrder[]>([])
+  const [orders, setOrders] = useState<KitchenOrder[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<"all" | "active" | "completed">("active")
+  const [filter, setFilter] = useState<KitchenFilter>("active")
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const mountedRef = useRef(true)
   const pollingRef = useRef<number | null>(null)
 
-  const activeItemsSummary = useMemo(() => {
-    const counts: Record<string, number> = {}
-    orders
-      .filter((o) => !o.is_ready)
-      .forEach((order) => {
-        order.order_items.forEach((item) => {
-          const name = item.products?.name_de ?? "Unbekanntes Produkt"
-          counts[name] = (counts[name] || 0) + item.quantity
-        })
-      })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])
-  }, [orders])
+  const activeItemsSummary = useMemo(() => summarizeActiveItems(orders), [orders])
 
   const fetchOrders = useCallback(async () => {
     const { data, error } = await supabase
@@ -105,20 +55,8 @@ export default function KitchenPage() {
       .limit(100)
 
     if (!error && data && mountedRef.current) {
-      setOrders(data as Order[])
+      setOrders(data as KitchenOrder[])
       setLastRefresh(new Date())
-    }
-  }, [])
-
-  const fetchRevenueOrders = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("id, created_at, total_price, is_paid")
-      .eq("is_paid", true)
-      .order("created_at", { ascending: false })
-
-    if (!error && data && mountedRef.current) {
-      setRevenueOrders(data as RevenueOrder[])
     }
   }, [])
 
@@ -145,17 +83,17 @@ export default function KitchenPage() {
 
   const refreshData = useCallback(async () => {
     setLoading(true)
-    await Promise.all([fetchOrders(), fetchRevenueOrders(), fetchProducts(), fetchInventory()])
+    await Promise.all([fetchOrders(), fetchProducts(), fetchInventory()])
       .finally(() => {
         if (mountedRef.current) {
           setLoading(false)
         }
       })
-  }, [fetchOrders, fetchProducts, fetchRevenueOrders, fetchInventory])
+  }, [fetchOrders, fetchProducts, fetchInventory])
 
   const silentRefresh = useCallback(async () => {
-    await Promise.all([fetchOrders(), fetchRevenueOrders(), fetchProducts(), fetchInventory()])
-  }, [fetchOrders, fetchProducts, fetchRevenueOrders, fetchInventory])
+    await Promise.all([fetchOrders(), fetchProducts(), fetchInventory()])
+  }, [fetchOrders, fetchProducts, fetchInventory])
 
   useEffect(() => {
     mountedRef.current = true
@@ -190,17 +128,16 @@ export default function KitchenPage() {
       }
       supabase.removeChannel(channel)
     }
-  }, [fetchOrders, fetchProducts, fetchRevenueOrders, fetchInventory, refreshData, silentRefresh])
+  }, [fetchOrders, fetchProducts, fetchInventory, refreshData, silentRefresh])
 
   const togglePaid = useCallback(async (id: string, current: boolean) => {
     const result = await updateOrderStatus(id, { is_paid: !current })
     if (result.success) {
       setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, is_paid: !current } : o)))
-      fetchRevenueOrders()
     } else {
       alert("Fehler beim Bezahlen: " + result.error)
     }
-  }, [fetchRevenueOrders])
+  }, [])
 
   const toggleReady = useCallback(async (id: string, current: boolean) => {
     const result = await updateOrderStatus(id, { is_ready: !current })
@@ -215,11 +152,10 @@ export default function KitchenPage() {
     const result = await deleteOrderAction(id)
     if (result.success) {
       setOrders((prev) => prev.filter((o) => o.id !== id))
-      fetchRevenueOrders()
     } else {
       alert("Fehler beim Stornieren: " + result.error)
     }
-  }, [fetchRevenueOrders])
+  }, [])
 
   const toggleProductAvailability = useCallback(
     async (id: string, current: boolean) => {
@@ -266,11 +202,7 @@ export default function KitchenPage() {
   }, [sidebarOpen])
 
   const filtered = useMemo(
-    () => orders.filter((o) => {
-      if (filter === "active") return !o.is_ready
-      if (filter === "completed") return o.is_ready
-      return true
-    }),
+    () => filterKitchenOrders(orders, filter),
     [filter, orders]
   )
 
@@ -279,27 +211,7 @@ export default function KitchenPage() {
     [orders]
   )
 
-  const escalationSummary = useMemo(() => {
-    let yellowCount = 0
-    let redCount = 0
-    orders.forEach((order) => {
-      if (order.is_ready) return
-      const elapsedMinutes = Math.floor((lastRefresh.getTime() - new Date(order.created_at).getTime()) / 60000)
-      const hasUnavailable = order.order_items.some((item) => item.products && !item.products.is_available)
-      
-      if (hasUnavailable || elapsedMinutes >= 30) {
-        redCount += 1
-      } else if (elapsedMinutes >= 15) {
-        yellowCount += 1
-      }
-    })
-    return {
-      yellowCount,
-      redCount,
-      totalCount: yellowCount + redCount,
-      worstLabel: redCount > 0 ? 'Überfällig' : 'wartet'
-    }
-  }, [lastRefresh, orders])
+  const escalationSummary = useMemo(() => getEscalationSummary(orders, lastRefresh.getTime()), [lastRefresh, orders])
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] text-stone-100">
@@ -330,7 +242,6 @@ export default function KitchenPage() {
                 onToggle={toggleProductAvailability}
                 onToggleAll={toggleAllProductAvailability}
               />
-              <MemoizedRevenuePanel orders={revenueOrders} />
             </div>
           </div>
         </aside>

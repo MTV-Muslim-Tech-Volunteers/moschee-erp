@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { formatTime, timeSince, type KitchenOrder } from '@/lib/kitchen'
+import { formatOrderTimestamp, timeSince, type KitchenOrder } from '@/lib/kitchen'
 
 export default function OrderCard({ order, onTogglePaid, onToggleReady, onDeleteOrder }: { order: KitchenOrder; onTogglePaid: (id: string, current: boolean) => void; onToggleReady: (id: string, current: boolean) => void; onDeleteOrder: (id: string) => void }) {
   const [toggling, setToggling] = useState(false)
@@ -96,7 +96,7 @@ export default function OrderCard({ order, onTogglePaid, onToggleReady, onDelete
             <h3 className="truncate text-[15px] font-bold leading-tight text-stone-50">{order.customer_name ?? 'Unbekannt'}</h3>
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-stone-400">
-            <span>{formatTime(order.created_at)}</span>
+            <span>{formatOrderTimestamp(order.created_at, now)}</span>
             <span>·</span>
             <span className={elapsedMinutes >= 15 && !order.is_ready ? 'font-bold text-[#f08f72]' : ''}>{timeSince(order.created_at)}</span>
           </div>

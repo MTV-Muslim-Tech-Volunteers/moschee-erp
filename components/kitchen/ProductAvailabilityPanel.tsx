@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react'
 import type { Product } from '@/lib/kitchen'
 
 export default function ProductAvailabilityPanel({ products, onToggle, onToggleAll }: { products: Product[]; onToggle: (id: string, current: boolean) => Promise<void>; onToggleAll: (available: boolean) => Promise<void> }) {
-  const [open, setOpen] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
   const [togglingAll, setTogglingAll] = useState(false)
 
@@ -24,17 +23,14 @@ export default function ProductAvailabilityPanel({ products, onToggle, onToggleA
   return (
     <div className="rounded-2xl border border-[#2c241d] bg-[#181411] shadow-sm overflow-hidden">
       
-      {/* Geänderter Header: Kein Überlappen mehr möglich */}
-      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#201a15] transition-colors">
+      <div className="flex items-center justify-between px-5 py-3.5">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="text-base font-semibold text-stone-100 truncate">Produktverfügbarkeit</span>
           {unavailableCount > 0 && <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-bold text-red-300">{unavailableCount} inaktiv</span>}
         </div>
-        <span className="text-sm text-stone-400 shrink-0 ml-2">{open ? 'Zuklappen' : 'Aufklappen'}</span>
-      </button>
+      </div>
 
-      {open && (
-        <div className="border-t border-[#2c241d] divide-y divide-[#2c241d] bg-[#14110e]">
+      <div className="border-t border-[#2c241d] divide-y divide-[#2c241d] bg-[#14110e]">
           <div className="px-5 py-4">
             <button
               onClick={handleToggleAll}
@@ -60,8 +56,7 @@ export default function ProductAvailabilityPanel({ products, onToggle, onToggleA
               </button>
             </div>
           ))}
-        </div>
-      )}
+      </div>
     </div>
   )
 }

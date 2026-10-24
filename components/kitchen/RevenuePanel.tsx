@@ -1,21 +1,20 @@
 import React, { useState, useMemo } from 'react'
-import { getMonthlyOrdersData } from '@/app/kitchen/actions'
-import { buildRevenueData, formatEur, monthLabel, weekLabel, type RevenueMonth, type RevenueOrder } from '@/lib/kitchen'
+import { getWeeklyOrdersData } from '@/app/kitchen/actions'
+import { buildRevenueMonthWeekData, formatEur, monthLabel, weekLabel, type RevenueMonthWeekSummary, type RevenueOrder } from '@/lib/kitchen'
 
 export default function RevenuePanel({ orders }: { orders: RevenueOrder[] }) {
   const [open, setOpen] = useState(false)
-  const [expandedMonth, setExpandedMonth] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState<string | null>(null)
 
-  const data = useMemo(() => buildRevenueData(orders), [orders])
+  const data = useMemo(() => buildRevenueMonthWeekData(orders), [orders])
   const totalAll = useMemo(() => data.reduce((sum, month) => sum + month.total, 0), [data])
 
-  const handleExportCSV = async (monthKey: string, e: React.MouseEvent) => {
+  const handleExportCSV = async (weekKey: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setIsExporting(monthKey)
+    setIsExporting(weekKey)
 
     try {
-      const result = await getMonthlyOrdersData(monthKey)
+      const result = await getWeeklyOrdersData(weekKey)
       if (!result.success || !result.data) {
         alert('Fehler beim Exportieren: ' + result.error)
         return
@@ -52,7 +51,7 @@ export default function RevenuePanel({ orders }: { orders: RevenueOrder[] }) {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `Bestellungen_${monthKey}.csv`
+      link.download = `Bestellungen_${weekKey}.csv`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -80,38 +79,32 @@ export default function RevenuePanel({ orders }: { orders: RevenueOrder[] }) {
             <p className="text-sm text-muted-foreground px-5 py-4">Keine bezahlten Bestellungen vorhanden.</p>
           ) : (
             <div className="divide-y">
-              {data.map((month: RevenueMonth) => (
+              {data.map((month: RevenueMonthWeekSummary) => (
                 <div key={month.key}>
-                  <button onClick={() => setExpandedMonth((v) => (v === month.key ? null : month.key))} className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/40 transition-colors text-left">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-3 bg-muted/30 px-5 py-3">
+                    <div>
                       <span className="font-semibold text-sm">{monthLabel(month.key)}</span>
-                      <span className="text-xs text-muted-foreground">{month.orderCount} Bestellung{month.orderCount !== 1 ? 'en' : ''}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{month.orderCount} Bestellung{month.orderCount !== 1 ? 'en' : ''}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-sm tabular-nums text-green-600">{formatEur(month.total)}</span>
-                      <button onClick={(e) => handleExportCSV(month.key, e)} disabled={isExporting === month.key} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors disabled:opacity-50" title="Als CSV herunterladen">
-                        {isExporting === month.key ? '...' : 'CSV'}
-                      </button>
-                    </div>
-                  </button>
-
-                  {expandedMonth === month.key && (
-                    <div className="bg-muted/30 divide-y divide-border/50">
-                      {month.weeks.map((week) => (
-                        <div key={week.key} className="flex items-center justify-between px-8 py-2.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-muted-foreground w-12">{weekLabel(week.key)}</span>
-                            <span className="text-xs text-muted-foreground">· {week.orderCount} Bestellung{week.orderCount !== 1 ? 'en' : ''}</span>
-                          </div>
-                          <span className="text-sm font-semibold tabular-nums">{formatEur(week.total)}</span>
+                    <span className="font-bold text-sm tabular-nums text-green-600">{formatEur(month.total)}</span>
+                  </div>
+                  {month.weeks.map((week) => (
+                    <div key={week.key} className="flex flex-wrap items-center justify-between gap-3 border-t px-8 py-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{weekLabel(week.key)}</span>
+                          <span className="text-xs text-muted-foreground">{week.startDate} - {week.endDate}</span>
                         </div>
-                      ))}
-                      <div className="flex items-center justify-between px-8 py-2 bg-muted/60">
-                        <span className="text-xs font-semibold text-muted-foreground">Monatsgesamt</span>
-                        <span className="text-sm font-bold tabular-nums text-green-600">{formatEur(month.total)}</span>
+                        <span className="text-xs text-muted-foreground">{week.orderCount} Bestellung{week.orderCount !== 1 ? 'en' : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-sm tabular-nums text-green-600">{formatEur(week.total)}</span>
+                        <button onClick={(e) => handleExportCSV(week.key, e)} disabled={isExporting === week.key} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors disabled:opacity-50" title="KW als CSV herunterladen">
+                          {isExporting === week.key ? '...' : 'CSV'}
+                        </button>
                       </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               ))}
             </div>
