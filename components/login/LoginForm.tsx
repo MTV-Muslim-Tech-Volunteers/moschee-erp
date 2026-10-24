@@ -28,22 +28,22 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-center text-sm font-medium text-destructive animate-in fade-in">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-center text-sm font-medium text-red-300 animate-in fade-in">
           {error}
         </div>
       )}
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground" htmlFor="username">Benutzername</label>
-        <input id="username" name="username" type="text" required autoComplete="username" placeholder="Benutzername eingeben" className="w-full rounded-xl border bg-background px-4 py-3 text-sm transition-all placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+        <label className="text-sm font-semibold text-stone-200" htmlFor="username">Benutzername</label>
+        <input id="username" name="username" type="text" required autoComplete="username" placeholder="Benutzername eingeben" className="w-full rounded-xl border border-[#3a2d22] bg-[#0f0d0b] px-4 py-3 text-sm text-stone-100 transition-all placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[#d9a36c]/50" />
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground" htmlFor="password">Passwort</label>
-        <input id="password" name="password" type="password" required autoComplete="current-password" placeholder="••••••••" className="w-full rounded-xl border bg-background px-4 py-3 text-sm transition-all placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+        <label className="text-sm font-semibold text-stone-200" htmlFor="password">Passwort</label>
+        <input id="password" name="password" type="password" required autoComplete="current-password" placeholder="••••••••" className="w-full rounded-xl border border-[#3a2d22] bg-[#0f0d0b] px-4 py-3 text-sm text-stone-100 transition-all placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[#d9a36c]/50" />
       </div>
 
-      <button type="submit" disabled={isLoading} className="mt-2 flex w-full items-center justify-center rounded-xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50">
+      <button type="submit" disabled={isLoading} className="mt-2 flex w-full items-center justify-center rounded-xl bg-[#d9a36c] py-3.5 text-sm font-bold text-[#24160e] shadow-[0_6px_16px_rgba(120,80,40,0.24)] transition-all hover:bg-[#e4b37d] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50">
         {isLoading ? (
           <svg className="h-5 w-5 animate-spin text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

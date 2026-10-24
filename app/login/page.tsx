@@ -5,12 +5,12 @@ import LoginForm from "@/components/login/LoginForm"
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-card rounded-2xl border shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.12),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] p-4 text-stone-100">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#2c241d] bg-[#181411] shadow-[0_18px_50px_rgba(0,0,0,0.35)] animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* ── Header ── */}
-        <div className="flex flex-col items-center justify-center p-8 border-b bg-muted/20">
-          <div className="w-20 h-20 bg-background rounded-full border shadow-sm flex items-center justify-center mb-5 relative overflow-hidden">
+        <div className="flex flex-col items-center justify-center border-b border-[#2c241d] bg-[#15110e] p-8">
+          <div className="relative mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-[#d9a36c]/70 bg-white/80 shadow-sm">
             <Image 
               src="/ditib-gk-logo.png" 
               alt="Logo" 
@@ -19,10 +19,10 @@ export default function LoginPage() {
               priority 
             />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-stone-100">
             System Login
           </h1>
-          <p className="text-sm text-muted-foreground mt-1.5 text-center">
+          <p className="mt-1.5 text-center text-sm text-stone-400">
             Bitte melde dich an, um auf die Verwaltung und die Küche zuzugreifen.
           </p>
         </div>
