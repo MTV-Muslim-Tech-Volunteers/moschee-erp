@@ -1,14 +1,13 @@
 "use client"
 
-"use client"
-
 import { useEffect, useState, useCallback, useSyncExternalStore } from "react"
-import Image from "next/image"
 import { supabase } from "@/lib/supabase"
 import ProductSkeleton from "@/components/menu/ProductSkeleton"
-import ProductCard from "@/components/menu/ProductCard"
 import CartDrawer from "@/components/menu/CartDrawer"
-import { Product, CartItem, TrackedOrder, Language, groupByCategory } from "@/lib/menu"
+import MenuHeader from "@/components/menu/MenuHeader"
+import TrackedOrdersPanel from "@/components/menu/TrackedOrdersPanel"
+import MenuProductSections from "@/components/menu/MenuProductSections"
+import { Product, CartItem, TrackedOrder, Language, getVisibleProducts, groupByCategory } from "@/lib/menu"
 
 export default function MenuPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -19,15 +18,35 @@ export default function MenuPage() {
   const [cartOpen, setCartOpen] = useState(false)
   const [trackedOrders, setTrackedOrders] = useState<TrackedOrder[]>([])
   const isClient = useSyncExternalStore(() => () => {}, () => true, () => false)
-  useEffect(() => {
-    async function fetchProducts() {
-      const { data, error } = await supabase.from("products").select("*").order("category").order("name_de")
-      if (error) setError("Fehler beim Laden.")
-      else setProducts(data ?? [])
-      setLoading(false)
+
+  const fetchProducts = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("is_available", true)
+      .order("category")
+      .order("name_de")
+
+    if (error) {
+      setError("Fehler beim Laden.")
+    } else {
+      setError(null)
+      setProducts(data ?? [])
     }
-    fetchProducts()
+    setLoading(false)
   }, [])
+
+  useEffect(() => {
+    queueMicrotask(() => { void fetchProducts() })
+    const channel = supabase
+      .channel("menu-products-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => {
+        void fetchProducts()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [fetchProducts])
 
   useEffect(() => {
     const savedCart = localStorage.getItem("my_cart")
@@ -134,69 +153,20 @@ export default function MenuPage() {
   }
 
   const totalCartItems = cart.reduce((sum, i) => sum + i.quantity, 0)
-  const grouped = groupByCategory(products)
+  const grouped = groupByCategory(getVisibleProducts(products))
   const categories = Object.keys(grouped)
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] py-10 px-4 pb-24 text-stone-100">
       <div className="max-w-5xl mx-auto space-y-10">
 
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="rounded-full border border-[#d9a36c]/70 bg-white/60 p-1 shadow-[0_2px_8px_rgba(120,80,40,0.12)]">
-            <Image src="/ditib-gk-logo.png" alt="Logo" width={80} height={80} className="rounded-full" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Speisekarte</h1>
-          </div>
-          <div className="inline-flex rounded-lg border border-[#31271f] bg-[#181411] p-1 gap-1 shadow-sm">
-            {(["de", "tr"] as Language[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${lang === l ? "bg-[#d9a36c] text-[#24160e]" : "text-stone-200 hover:bg-[#231b16]"}`}
-              >
-                {l === "de" ? "Deutsch" : "Türkçe"}
-              </button>
-            ))}
-          </div>
-        </div>
+        <MenuHeader lang={lang} onLanguageChange={setLang} />
 
         {isClient && trackedOrders.length > 0 && (
-          <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-3 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-[#d9a36c] animate-pulse"></div>
-            <div className="flex justify-between items-center">
-               <h3 className="font-bold text-sm">
-                 {lang === "de" ? "Ihre aktiven Bestellungen" : "Aktif Siparişleriniz"}
-               </h3>
-               <button onClick={clearTrackedOrders} className="text-xs text-muted-foreground hover:underline">
-                 {lang === "de" ? "Verlauf löschen" : "Geçmişi temizle"}
-               </button>
-            </div>
-            <div className="space-y-2">
-              {trackedOrders.map(order => (
-                <div key={order.id} className="flex justify-between items-center text-sm p-3 rounded-xl bg-muted/50 border">
-                  <span className="text-muted-foreground text-xs">
-                    {new Date(order.created_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr
-                  </span>
-                  <div>
-                    {order.is_cancelled ? (
-                      <span className="bg-red-500/20 text-red-600 px-2.5 py-1 rounded-full font-semibold text-xs">Storniert</span>
-                    ) : order.is_ready ? (
-                      <span className="bg-green-500/20 text-green-600 px-2.5 py-1 rounded-full font-semibold text-xs">Abholbereit!</span>
-                    ) : (
-                      <span className="bg-blue-500/15 text-blue-700 px-2.5 py-1 rounded-full font-semibold text-xs flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
-                        Wird zubereitet...
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <TrackedOrdersPanel orders={trackedOrders} lang={lang} onClear={clearTrackedOrders} />
         )}
 
-        {error && <div className="text-red-500 text-center">{error}</div>}
+        {error && <div className="text-red-500 text-center">{lang === "de" ? error : "Yükleme sırasında bir hata oluştu."}</div>}
 
         {loading && (
            <div className="grid grid-cols-2 gap-4">
@@ -204,24 +174,14 @@ export default function MenuPage() {
            </div>
         )}
 
-        {!loading && !error && categories.map((category) => (
-          <section key={category} className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-400/70 pb-3">
-              <h2 className="text-xl font-semibold tracking-tight">{category}</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {grouped[category].map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  lang={lang}
-                  onAdd={addToCart}
-                  cartQty={cart.find((i) => i.product.id === product.id)?.quantity ?? 0}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
+        {!loading && !error && categories.length === 0 && (
+          <div className="rounded-2xl border border-[#3a2d22] bg-[#181411] px-6 py-12 text-center shadow-sm">
+            <h2 className="text-2xl font-semibold">{lang === "de" ? "Zurzeit kein Verkauf" : "Şu anda satış yok"}</h2>
+            <p className="mt-2 text-sm text-stone-400">{lang === "de" ? "Bitte schauen Sie später wieder vorbei." : "Lütfen daha sonra tekrar bakın."}</p>
+          </div>
+        )}
+
+        {!loading && !error && <MenuProductSections grouped={grouped} lang={lang} cart={cart} onAdd={addToCart} />}
       </div>
 
       {isClient && totalCartItems > 0 && (

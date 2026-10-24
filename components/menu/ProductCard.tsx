@@ -31,7 +31,7 @@ export default function ProductCard({
           {product.image_url && !imageFailed ? (
             <Image src={product.image_url} alt={name} fill className="object-cover" onError={() => setImageFailed(true)} />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-xs">Kein Bild</div>
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-xs">{lang === "de" ? "Kein Bild" : "Görsel yok"}</div>
           )}
         </div>
 

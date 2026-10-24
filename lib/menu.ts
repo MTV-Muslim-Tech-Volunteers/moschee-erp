@@ -24,6 +24,23 @@ export interface TrackedOrder {
 
 export type Language = "de" | "tr"
 
+export function translateCategory(category: string, lang: Language): string {
+  if (lang === "de") return category
+
+  const translations: Record<string, string> = {
+    "Hauptspeise": "Ana yemek",
+    "Getränk": "İçecek",
+    "Merch": "Ürünler",
+    "Sonstiges": "Diğer",
+  }
+
+  return translations[category] ?? category
+}
+
+export function getVisibleProducts(products: Product[]): Product[] {
+  return products.filter((product) => product.is_available)
+}
+
 export function groupByCategory(products: Product[]): Record<string, Product[]> {
   const grouped = products.reduce<Record<string, Product[]>>((acc, product) => {
     const key = product.category ?? "Sonstiges"
@@ -33,7 +50,13 @@ export function groupByCategory(products: Product[]): Record<string, Product[]> 
   }, {})
 
   return Object.fromEntries(
-    Object.entries(grouped).map(([category, categoryProducts]) => {
+    Object.entries(grouped)
+      .sort(([categoryA], [categoryB]) => {
+        if (categoryA === "Merch") return 1
+        if (categoryB === "Merch") return -1
+        return categoryA.localeCompare(categoryB, "de")
+      })
+      .map(([category, categoryProducts]) => {
       const firstToastIndex = categoryProducts.findIndex((product) =>
         product.name_de.toLocaleLowerCase().includes("toast")
       )
@@ -45,6 +68,6 @@ export function groupByCategory(products: Product[]): Record<string, Product[]> 
         ...categoryProducts.filter(isToast),
         ...categoryProducts.slice(firstToastIndex + 1).filter((product) => !isToast(product)),
       ]]
-    })
+      })
   )
 }

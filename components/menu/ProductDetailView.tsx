@@ -3,7 +3,7 @@
 import Image from "next/image"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import type { Language, Product } from "@/lib/menu"
+import { translateCategory, type Language, type Product } from "@/lib/menu"
 
 export default function ProductDetailView({
   product,
@@ -52,7 +52,7 @@ export default function ProductDetailView({
             {product.image_url && !imageFailed ? (
               <Image src={product.image_url} alt={name} fill className="object-cover" priority onError={() => setImageFailed(true)} />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground/30">Kein Bild</div>
+              <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground/30">{lang === "de" ? "Kein Bild" : "Görsel yok"}</div>
             )}
             {!product.is_available && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -70,7 +70,7 @@ export default function ProductDetailView({
             <span className="shrink-0 text-2xl font-black tabular-nums text-primary">{product.price.toFixed(2).replace(".", ",")} €</span>
           </div>
 
-          <div className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{product.category}</div>
+          <div className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{translateCategory(product.category, lang)}</div>
 
           <div className="border-t pt-4">
             <h3 className="mb-3 text-sm font-bold text-muted-foreground">{lang === "de" ? "Beschreibung" : "Açıklama"}</h3>
