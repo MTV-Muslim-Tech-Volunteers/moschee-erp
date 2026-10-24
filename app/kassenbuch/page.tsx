@@ -7,6 +7,7 @@ import KpiDashboard from '@/components/kassenbuch/KpiDashboard';
 import TransactionFilters from '@/components/kassenbuch/TransactionFilters';
 import TransactionTable from '@/components/kassenbuch/TransactionTable';
 import type { Transaction } from '@/components/kassenbuch/types';
+import FinanceBackLink from '@/components/finance/FinanceBackLink';
 
 export default function KassenbuchUebersichtPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -88,7 +89,9 @@ export default function KassenbuchUebersichtPage() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] p-6 text-stone-100">
+        <div className="mx-auto max-w-6xl space-y-6">
+        <FinanceBackLink />
         <Skeleton className="h-10 w-64 mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Skeleton className="h-24 w-full" />
@@ -96,12 +99,15 @@ export default function KassenbuchUebersichtPage() {
           <Skeleton className="h-24 w-full" />
         </div>
         <Skeleton className="h-[400px] w-full mt-6" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] p-6 text-stone-100">
+    <div className="mx-auto max-w-6xl space-y-6">
+      <FinanceBackLink />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Kassenbuch</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -118,6 +124,7 @@ export default function KassenbuchUebersichtPage() {
       <KpiDashboard totalBalance={totalBalance} incomeSum={incomeSum} expenseSum={expenseSum} />
       <TransactionFilters searchQuery={searchQuery} selectedYear={selectedYear} selectedType={selectedType} onSearchChange={setSearchQuery} onYearChange={setSelectedYear} onTypeChange={setSelectedType} />
       <TransactionTable transactions={filteredTransactions} totalTransactions={transactions.length} />
+    </div>
     </div>
   );
 }

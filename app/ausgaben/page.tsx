@@ -7,6 +7,7 @@ import SuccessScreen from '@/components/ausgaben/SuccessScreen';
 import { LocalReceipt, SavedReceipt, CATEGORIES, formatEuro, formatDate } from '@/lib/ausgaben';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { saveTransactions } from '@/app/actions/finance';
+import FinanceBackLink from '@/components/finance/FinanceBackLink';
 
 export default function AusgabenStapelPage() {
   const [stapel, setStapel] = useState<LocalReceipt[]>([]);
@@ -88,7 +89,9 @@ export default function AusgabenStapelPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] p-6 text-stone-100">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <FinanceBackLink />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Stapelverarbeitung Ausgaben</h1>
         <p className="text-sm text-muted-foreground mt-1">Erfasse Belege lokal, sortiere sie chronologisch und buche sie gesammelt in die Datenbank.</p>
@@ -134,6 +137,7 @@ export default function AusgabenStapelPage() {
           )}
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }
