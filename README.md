@@ -4,17 +4,34 @@ Ein maßgeschneidertes Enterprise Resource Planning (ERP) System und eine automa
 
 ## Features
 
-*   **Digitale Kassenbuch-Verarbeitung:** Batch-Processing und detaillierte Buchungshistorie.
-*   **Küchen-Dashboard:** Echtzeit-Übersicht für eingehende Bestellungen, Status-Updates (In Zubereitung, Erledigt) und Lagerbestand.
+*   **Digitale Kassenbuch-Verarbeitung:** Batch-Processing, detaillierte Buchungshistorie und Filter.
+*   **Muhasebe-Übersicht:** Finance-Dashboard mit Einnahmen nach Monat und Kalenderwoche sowie CSV-Export pro KW.
+*   **Küchen-Dashboard:** Echtzeit-Übersicht für eingehende Bestellungen, Status-Updates (In Zubereitung, Erledigt), Lagerbestand und Produktverfügbarkeit.
 *   **Inventarkontrolle:** Verwaltung von Zutaten und automatische Warnungen bei niedrigem Bestand.
-*   **Speisekarte & Warenkorb:** Digitale Bestellaufnahme mit mehrsprachiger Unterstützung (Deutsch / Türkisch).
-*   **Admin-Bereich:** Produkt- und Kategorieverwaltung inklusive Bild-Uploads.
+*   **Speisekarte & Warenkorb:** Digitale Bestellaufnahme mit mehrsprachiger Unterstützung (Deutsch / Türkisch), Merch-Kategorie und Realtime-Produktaktualisierung.
+*   **Produktverwaltung:** Neue Speisen, Getränke und Merch-Artikel inklusive Bild-Uploads anlegen.
+*   **Sortimentsverwaltung:** Preise ändern, Produkte temporär ausblenden/einblenden oder dauerhaft löschen.
+*   **Rollenbasierter Zugriff:** Admin verwaltet Küche und Produkte; Finance erhält zusätzlich Zugriff auf Muhasebe, Kassenbuch, Ausgaben und Sortimentsänderungen.
 
 ## Tech Stack
 
 *   **Frontend:** [Next.js](https://nextjs.org/) (App Router), React, [Tailwind CSS](https://tailwindcss.com/)
 *   **Backend & Datenbank:** [Supabase](https://supabase.com/) (PostgreSQL, Auth, Storage, Realtime)
 *   **Sprache:** TypeScript
+*   **Tests:** Vitest
+
+## Wichtige Bereiche
+
+*   `/menu` – Öffentliche Speisekarte und Warenkorb.
+*   `/login` – Anmeldung für Admin- und Finance-Nutzer.
+*   `/admin` – Rollenabhängiger System-Hub.
+*   `/kitchen` – Bestellungen, Lagerbestand und Produktverfügbarkeit.
+*   `/kitchen/quick-order` – Schnelle Bestellaufnahme für die Küche.
+*   `/products` – Neue Produkte und Merch-Artikel anlegen.
+*   `/products/change` bzw. `/change` – Finance-only: Preise und Sortiment ändern.
+*   `/muhasebe` – Finance-only: Einnahmenübersicht und zentrale Links zu Finanzbereichen.
+*   `/kassenbuch` – Finance-only: Buchungshistorie und Kennzahlen.
+*   `/ausgaben` – Finance-only: Ausgaben als Stapel erfassen.
 
 ## Lokale Installation (Getting Started)
 
@@ -28,9 +45,7 @@ Um das Projekt lokal auszuführen, folge diesen Schritten:
 
 2.  **Abhängigkeiten installieren:**
     ```bash
-    npm install
-    # oder
-    yarn install
+    pnpm install
     ```
 
 3.  **Umgebungsvariablen konfigurieren:**
@@ -49,9 +64,20 @@ Um das Projekt lokal auszuführen, folge diesen Schritten:
 
 4.  **Entwicklungsserver starten:**
     ```bash
-    npm run dev
+    pnpm dev
     ```
     Öffne [http://localhost:3000](http://localhost:3000) im Browser, um die Anwendung zu sehen.
+
+## Entwicklung und Tests
+
+```bash
+pnpm test                 # Unit-Tests ausführen
+pnpm exec tsc --noEmit    # TypeScript prüfen
+pnpm exec eslint          # Linting ausführen
+pnpm build                # Produktions-Build erstellen
+```
+
+Produktänderungen und Verfügbarkeitsänderungen werden per Supabase-Realtime automatisch in `/menu` und `/kitchen` sichtbar. Die Einnahmenübersicht auf `/muhasebe` aktualisiert sich ebenfalls bei Änderungen an Bestellungen.
 
 ## Autor
 *   **Achmet Chakseven** 
