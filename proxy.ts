@@ -7,8 +7,8 @@ export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // Routen-Gruppen definieren
-  const financeRoutes = ['/kassenbuch', '/ausgaben']
-  const adminRoutes = ['/produkte', '/kitchen']
+  const financeRoutes = ['/muhasebe', '/kassenbuch', '/ausgaben', '/products/change', '/change']
+  const adminRoutes = ['/products', '/kitchen']
 
   const isFinanceRoute = financeRoutes.some(route => path.startsWith(route))
   const isAdminRoute = adminRoutes.some(route => path.startsWith(route))
@@ -33,5 +33,5 @@ export function proxy(request: NextRequest) {
 
 // Hier definieren wir, welche Seiten von dieser Regel geschützt werden sollen
 export const config = {
-  matcher: ['/kassenbuch/:path*', '/ausgaben/:path*', '/produkte/:path*', '/kitchen/:path*', '/admin'],
+  matcher: ['/muhasebe/:path*', '/kassenbuch/:path*', '/ausgaben/:path*', '/products/:path*', '/change/:path*', '/admin'],
 }

@@ -42,7 +42,7 @@ export default function ProductForm({
   }
 
   return (
-    <Card>
+    <Card className="border-[#2c241d] bg-[#181411] text-stone-100">
       <CardHeader>
         <CardTitle className="text-2xl">Neues Produkt hinzufügen</CardTitle>
         <CardDescription>Füllen Sie alle Felder aus, um ein neues Produkt anzulegen.</CardDescription>
@@ -112,6 +112,7 @@ export default function ProductForm({
                   <SelectContent>
                     <SelectItem value="Hauptspeise">Hauptspeise</SelectItem>
                     <SelectItem value="Getränk">Getränk</SelectItem>
+                    <SelectItem value="Merch">Merch</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

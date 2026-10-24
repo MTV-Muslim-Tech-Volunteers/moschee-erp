@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useRef, useState } from "react"
+import Link from "next/link"
 import { createProduct } from './actions'
 
 import ProductForm from '@/components/admin/ProductForm'
@@ -50,7 +51,7 @@ export default function AdminProductForm() {
     setIsSubmitting(true)
 
     try {
-      // 1. Bild hochladen
+      //Bild hochladen
       let image_url: string | null = null
       if (imageFile) {
         image_url = await uploadImage(imageFile)
@@ -80,8 +81,17 @@ export default function AdminProductForm() {
   }
 
   return (
-    <main className="min-h-screen bg-muted/40 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,158,102,0.10),_transparent_34%),linear-gradient(180deg,_#0f0d0b_0%,_#12100d_45%,_#0e0c0b_100%)] px-4 py-10 text-stone-100 sm:py-12">
+      <div className="mx-auto max-w-4xl space-y-8">
+        <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d9a36c]">Admin</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight">Produkte</h1>
+            <p className="mt-2 text-sm text-stone-400">Neue Artikel für das Sortiment anlegen.</p>
+          </div>
+          <Link href="/change" className="inline-flex min-h-10 items-center rounded-lg border border-[#d9a36c]/60 bg-[#d9a36c] px-4 py-2 text-sm font-bold text-[#24160e] shadow-[0_4px_12px_rgba(120,80,40,0.18)] transition-colors hover:bg-[#e4b37d]">Produkte ändern</Link>
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-[#2c241d] bg-[#181411] shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
         <ProductForm
           formData={formData}
           setFormData={setFormData}
@@ -94,6 +104,7 @@ export default function AdminProductForm() {
           handleSubmit={handleSubmit}
           isSubmitting={isSubmitting}
         />
+        </div>
       </div>
     </main>
   )

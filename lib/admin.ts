@@ -9,6 +9,8 @@ export interface ProductFormData {
   price: string
 }
 
+export const PRODUCT_CATEGORIES = ["Hauptspeise", "Getränk", "Merch"] as const
+
 /** Upload image to Supabase storage 'product-images' and return public URL */
 export async function uploadImage(file: File): Promise<string> {
   const fileExt = file.name.split('.').pop()
