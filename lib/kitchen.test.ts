@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { buildRevenueData, buildRevenueMonthWeekData, buildRevenueWeekData, filterKitchenOrders, formatEur, formatOrderTimestamp, formatWeekDateRange, getEscalationSummary, getISOWeek, summarizeActiveItems, type KitchenOrder, type RevenueOrder } from "./kitchen"
+import { berlinWeekKey, buildRevenueData, buildRevenueMonthWeekData, buildRevenueWeekData, buildRevenueWeeklyReport, filterKitchenOrders, formatEur, formatOrderTimestamp, formatWeekDateRange, getEscalationSummary, getISOWeek, parseRevenueItemString, summarizeActiveItems, type KitchenOrder, type RevenueOrder } from "./kitchen"
 
 const order = (overrides: Partial<RevenueOrder>): RevenueOrder => ({
   id: "order",
@@ -68,6 +68,29 @@ describe("kitchen revenue", () => {
     expect(result).toHaveLength(1)
     expect(result[0]).toMatchObject({ key: "2026-10", total: 17.5, orderCount: 2 })
     expect(result[0].weeks.map((week) => week.key)).toEqual(["2026-W43", "2026-W42"])
+  })
+
+  it("uses Berlin calendar time for ISO week boundaries", () => {
+    expect(berlinWeekKey("2026-01-04T23:30:00.000Z")).toBe("2026-W02")
+    expect(berlinWeekKey("2026-01-04T22:30:00.000Z")).toBe("2026-W01")
+  })
+
+  it("parses outer quantities and preserves product names containing x", () => {
+    expect(parseRevenueItemString("1x 6x Nuggets; 2x Pommes")).toEqual([
+      { quantity: 1, name: "6x Nuggets" },
+      { quantity: 2, name: "Pommes" },
+    ])
+  })
+
+  it("aggregates paid non-cancelled revenue while retaining every order", () => {
+    const result = buildRevenueWeeklyReport([
+      order({ id: "paid", total_price: 12, created_at: "2026-10-12T10:00:00.000Z", order_items: [{ quantity: 2, products: { name_de: "6x Nuggets" } }] }),
+      order({ id: "unpaid", is_paid: false, total_price: 8, created_at: "2026-10-13T10:00:00.000Z" }),
+      order({ id: "cancelled", is_cancelled: true, total_price: 5, created_at: "2026-10-14T10:00:00.000Z" }),
+    ], "2026-W42")
+
+    expect(result).toMatchObject({ total: 12, orderCount: 1, average: 12, orders: [{ id: "paid" }, { id: "unpaid" }, { id: "cancelled" }] })
+    expect(result.items).toEqual([{ name: "6x Nuggets", quantity: 2 }])
   })
 
   it("shows only the time for recent orders and date plus time after 24 hours", () => {
