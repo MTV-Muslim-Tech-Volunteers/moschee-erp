@@ -2,6 +2,8 @@
 
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { getISOWeekDateRange } from "@/lib/kitchen"
+import { cookies } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 
 export async function updateOrderStatus(id: string, data: { is_paid?: boolean; is_ready?: boolean }) {
   try {
@@ -117,12 +119,17 @@ export async function getMonthlyOrdersData(monthKey: string) {
 }
 
 export async function getWeeklyOrdersData(weekKey: string) {
+  if ((await cookies()).get("gk_auth")?.value !== "role_finance") {
+    return { success: false, error: "Keine Berechtigung" }
+  }
+
   const { start, end } = getISOWeekDateRange(weekKey)
   const endExclusive = new Date(end)
   endExclusive.setUTCDate(endExclusive.getUTCDate() + 1)
 
   try {
-    const { data, error } = await supabaseAdmin
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const { data, error } = await supabase
       .from("orders")
       .select(`
         id,
@@ -130,6 +137,7 @@ export async function getWeeklyOrdersData(weekKey: string) {
         customer_name,
         total_price,
         is_paid,
+        is_cancelled,
         order_items (
           quantity,
           price_at_time,

@@ -14,11 +14,10 @@ export default function RevenueOverview() {
     async function loadRevenue() {
       const { data } = await supabase
         .from("orders")
-        .select("id, created_at, total_price, is_paid")
-        .eq("is_paid", true)
+        .select("id, created_at, customer_name, total_price, is_paid, is_cancelled, order_items ( quantity, products ( name_de ) )")
         .order("created_at", { ascending: false })
 
-      if (mounted) setOrders((data ?? []) as RevenueOrder[])
+      if (mounted) setOrders(data ?? [])
     }
 
     void loadRevenue()

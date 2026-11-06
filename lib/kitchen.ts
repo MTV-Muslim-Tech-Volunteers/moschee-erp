@@ -70,9 +70,11 @@ export interface KitchenOrder {
 export interface RevenueOrder {
   id: string
   created_at: string
+  customer_name?: string | null
   total_price: number | null
   is_paid: boolean
-  order_items: OrderItem[]
+  is_cancelled?: boolean
+  order_items: Array<Pick<OrderItem, 'quantity'> & { products: Pick<Product, 'name_de'> | Pick<Product, 'name_de'>[] | null }>
 }
 
 export interface RevenueWeek {
@@ -91,6 +93,27 @@ export interface RevenueMonthWeekSummary {
   total: number
   orderCount: number
   weeks: RevenueWeekSummary[]
+}
+
+export interface RevenueItemSummary {
+  name: string
+  quantity: number
+}
+
+export interface RevenueDaySummary {
+  date: string
+  orderCount: number
+  total: number
+}
+
+export interface RevenueWeeklyReport {
+  key: string
+  orders: RevenueOrder[]
+  total: number
+  orderCount: number
+  average: number
+  items: RevenueItemSummary[]
+  days: RevenueDaySummary[]
 }
 
 export interface RevenueMonth {
@@ -131,6 +154,88 @@ export function weekKey(date: Date): string {
   return `${date.getFullYear()}-W${String(getISOWeek(date)).padStart(2, '0')}`
 }
 
+function berlinDateParts(iso: string): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(iso))
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return { year: Number(values.year), month: Number(values.month), day: Number(values.day) }
+}
+
+export function berlinWeekKey(iso: string): string {
+  const { year, month, day } = berlinDateParts(iso)
+  return weekKey(new Date(Date.UTC(year, month - 1, day)))
+}
+
+export function formatBerlinDate(iso: string): string {
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(iso))
+}
+
+export function formatBerlinTime(iso: string): string {
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}
+
+export function parseRevenueItemString(value: string): RevenueItemSummary[] {
+  return value.split(';').map((entry) => {
+    const match = entry.trim().match(/^(\d+)x\s+(.+)$/)
+    return match
+      ? { quantity: Number(match[1]), name: match[2].trim() }
+      : { quantity: 1, name: entry.trim() }
+  }).filter((item) => item.name.length > 0)
+}
+
+export function buildRevenueWeeklyReport(orders: RevenueOrder[], key: string): RevenueWeeklyReport {
+  const weekOrders = orders
+    .filter((order) => berlinWeekKey(order.created_at) === key)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+  const paidOrders = weekOrders.filter((order) => order.is_paid && !order.is_cancelled)
+  const total = paidOrders.reduce((sum, order) => sum + (order.total_price ?? 0), 0)
+  const itemCounts = new Map<string, number>()
+  const dayCounts = new Map<string, { orderCount: number; total: number }>()
+
+  for (const order of paidOrders) {
+    const day = formatBerlinDate(order.created_at)
+    const daySummary = dayCounts.get(day) ?? { orderCount: 0, total: 0 }
+    daySummary.orderCount += 1
+    daySummary.total += order.total_price ?? 0
+    dayCounts.set(day, daySummary)
+
+    for (const item of order.order_items) {
+      const product = Array.isArray(item.products) ? item.products[0] : item.products
+      const name = product?.name_de ?? 'Unbekannt'
+      itemCounts.set(name, (itemCounts.get(name) ?? 0) + item.quantity)
+    }
+  }
+
+  const days = Array.from(dayCounts.entries())
+    .map(([date, summary]) => ({ date, ...summary }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  return {
+    key,
+    orders: weekOrders,
+    total,
+    orderCount: paidOrders.length,
+    average: paidOrders.length === 0 ? 0 : total / paidOrders.length,
+    items: Array.from(itemCounts.entries())
+      .map(([name, quantity]) => ({ name, quantity }))
+      .sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name, 'de')),
+    days,
+  }
+}
+
 export function getISOWeekDateRange(key: string): { start: Date; end: Date } {
   const [yearText, weekText] = key.split('-W')
   const year = Number(yearText)
@@ -168,16 +273,18 @@ export function buildRevenueWeekData(orders: RevenueOrder[]): RevenueWeekSummary
 export function buildRevenueMonthWeekData(orders: RevenueOrder[]): RevenueMonthWeekSummary[] {
   const months = new Map<string, Map<string, { total: number; orderCount: number }>>()
 
-  for (const order of orders.filter((item) => item.is_paid && item.total_price != null)) {
-    const date = new Date(order.created_at)
-    const month = monthKey(date)
-    const week = weekKey(date)
-    const weeks = months.get(month) ?? new Map<string, { total: number; orderCount: number }>()
+  for (const order of orders) {
+    const { year, month } = berlinDateParts(order.created_at)
+    const week = berlinWeekKey(order.created_at)
+    const groupingMonth = monthKey(new Date(Date.UTC(year, month - 1, 1)))
+    const weeks = months.get(groupingMonth) ?? new Map<string, { total: number; orderCount: number }>()
     const current = weeks.get(week) ?? { total: 0, orderCount: 0 }
-    current.total += order.total_price!
-    current.orderCount += 1
+    if (order.is_paid && !order.is_cancelled && order.total_price != null) {
+      current.total += order.total_price
+      current.orderCount += 1
+    }
     weeks.set(week, current)
-    months.set(month, weeks)
+    months.set(groupingMonth, weeks)
   }
 
   return Array.from(months.entries())
